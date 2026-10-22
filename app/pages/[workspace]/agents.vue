@@ -1,9 +1,10 @@
 <script setup lang="ts">
+const $fetch = useApi()
 import { IconBolt } from '@tabler/icons-vue'
 const route = useRoute(),
   key = computed(() => String(route.params.workspace))
 useHead({ title: 'Agents — Tenzeros' })
-const { data, refresh } = await useFetch(() => `/api/workspaces/${key.value}/agents`)
+const { data, refresh } = await useApiFetch(() => `/api/workspaces/${key.value}/agents`)
 const busy = ref(''),
   error = ref('')
 async function toggle(id: string, enabled: boolean) {
@@ -47,7 +48,9 @@ useRealtime({
     <p class="muted">
       Ready-made helpers for your CRM. Enable an agent to make it part of your workspace.
     </p>
-    <p class="demo">Demo catalogue · Agent execution arrives with guided setup in M3.</p>
+    <p class="demo">
+      Demo catalogue · Enabled agents are saved; background execution is not included.
+    </p>
     <p v-if="error" role="alert" class="error">{{ error }}</p>
     <div class="agents">
       <article v-for="agent in data?.agents" :key="agent.id">
@@ -75,13 +78,13 @@ useRealtime({
 .back {
   display: inline-block;
   font-size: 12px;
-  color: #777;
+  color: var(--color-textSecondary);
   margin-bottom: 24px;
   text-decoration: none;
 }
 .demo {
   font-size: 12px;
-  color: #777;
+  color: var(--color-textSecondary);
   margin: 16px 0 24px;
 }
 .agents {
@@ -101,7 +104,7 @@ article {
 }
 article > svg {
   flex: 0 0 auto;
-  color: #888;
+  color: var(--color-textTertiary);
 }
 article div {
   flex: 1;
@@ -111,7 +114,7 @@ h2 {
   margin: 0 0 8px;
 }
 article p {
-  color: #777;
+  color: var(--color-textSecondary);
   font-size: 12px;
 }
 button {

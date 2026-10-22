@@ -1,15 +1,27 @@
 <script setup lang="ts">
+import { trapDialogFocus } from '../../utils/dialog-focus'
 import { IconX } from '@tabler/icons-vue'
 defineProps<{ title: string }>()
 const emit = defineEmits<{ close: [] }>()
 const dialog = ref<HTMLDialogElement>()
-onMounted(() => dialog.value?.showModal())
+// Native dialog supplies focus containment and Escape. Also restore focus when a
+// successful action removes the component without calling dialog.close().
+let opener: HTMLElement | null = null
+onMounted(() => {
+  opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
+  dialog.value?.showModal()
+})
+onBeforeUnmount(() => {
+  dialog.value?.close()
+  if (opener?.isConnected) opener.focus()
+})
 </script>
 <template>
   <dialog
     ref="dialog"
     class="modal"
     aria-labelledby="onboarding-modal-title"
+    @keydown.tab="trapDialogFocus($event, dialog)"
     @close="emit('close')"
     @click="
       (event) => {

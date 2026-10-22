@@ -20,7 +20,7 @@ defineProps<{ credits: number; earned?: boolean }>()
   padding: 0 3px;
   font-size: 10px;
   line-height: 14px;
-  color: #c6c6c6;
+  color: var(--color-textSecondary);
 }
 .earned {
   color: var(--color-successText);

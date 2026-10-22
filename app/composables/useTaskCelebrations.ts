@@ -1,4 +1,5 @@
 import confetti from 'canvas-confetti'
+import { readCelebrations } from '../utils/celebration-storage'
 import type { Completion } from '#shared/onboarding'
 const colors = [
   '#ff4d4f',
@@ -46,47 +47,59 @@ export function useTaskCelebrations(identity: Ref<string>, completions: Ref<Comp
     }, ms)
     timers.add(timer)
   }
-  function save(key: string) {
-    seen.add(key)
-    queued.delete(key)
-    displayed.value = [...seen]
+  const storageKey = () => `onboarding-seen-tasks:${identity.value}`
+  function restoreSeen() {
     try {
-      localStorage.setItem(`onboarding-seen-tasks:${identity.value}`, JSON.stringify([...seen]))
+      for (const key of readCelebrations(localStorage, storageKey())) seen.add(key)
     } catch {
       /* Storage is optional. */
     }
+    displayed.value = [...seen]
   }
-  function run(key: string) {
-    if (document.hidden) {
-      queued.delete(key)
-      return
+  async function run(key: string) {
+    const currentIdentity = identity.value
+    const claim = () => {
+      if (!mounted || document.hidden || identity.value !== currentIdentity) return
+      restoreSeen()
+      if (seen.has(key)) return
+      // Claim before firing, merging with other tabs under a shared Web Lock.
+      seen.add(key)
+      try {
+        localStorage.setItem(storageKey(), JSON.stringify([...seen]))
+      } catch {
+        /* Still deduplicate within this mount when storage is unavailable. */
+      }
+      const card = document.querySelector<HTMLElement>(`[data-task="${key}"]`)
+      if (card && !matchMedia('(prefers-reduced-motion: reduce)').matches)
+        card.animate(
+          [
+            { transform: 'scale(1)' },
+            { transform: 'scale(.95)' },
+            { transform: 'scale(1.03)' },
+            { transform: 'scale(1)' },
+          ],
+          { duration: 700 },
+        )
+      celebrate(card)
+      displayed.value = [...seen]
     }
-    const card = document.querySelector<HTMLElement>(`[data-task="${key}"]`)
-    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (card && !reduced)
-      card.animate(
-        [
-          { transform: 'scale(1)', offset: 0 },
-          { transform: 'scale(.9)', offset: 0.7 },
-          { transform: 'scale(1.05)', offset: 0.9 },
-          { transform: 'scale(1)', offset: 1 },
-        ],
-        { duration: 700 },
-      )
-    later(
-      () => {
-        celebrate(card)
-        save(key)
-      },
-      reduced ? 0 : 490,
-    )
+    try {
+      // Web Locks are available in secure contexts (including localhost). The
+      // storage listener also keeps passive tabs' completed cards up to date.
+      if (navigator.locks) await navigator.locks.request(storageKey(), claim)
+      else claim()
+    } finally {
+      queued.delete(key)
+    }
   }
   function reconcile() {
     if (!mounted || document.hidden) return
     for (const row of completions.value)
       if (!seen.has(row.taskKey) && !queued.has(row.taskKey)) {
         queued.add(row.taskKey)
-        later(() => run(row.taskKey), 500)
+        later(() => {
+          void run(row.taskKey)
+        }, 500)
       }
   }
   function initialize() {
@@ -94,22 +107,17 @@ export function useTaskCelebrations(identity: Ref<string>, completions: Ref<Comp
     timers.clear()
     seen.clear()
     queued.clear()
-    try {
-      const stored: unknown = JSON.parse(
-        localStorage.getItem(`onboarding-seen-tasks:${identity.value}`) || '[]',
-      )
-      if (Array.isArray(stored))
-        for (const key of stored) if (typeof key === 'string') seen.add(key)
-    } catch {
-      /* Ignore corrupt storage. */
-    }
-    displayed.value = [...seen]
+    restoreSeen()
     reconcile()
+  }
+  function storageChanged(event: StorageEvent) {
+    if (event.key === storageKey()) restoreSeen()
   }
   onMounted(() => {
     mounted = true
     initialize()
     document.addEventListener('visibilitychange', reconcile)
+    window.addEventListener('storage', storageChanged)
   })
   watch(completions, reconcile)
   watch(identity, () => {
@@ -119,6 +127,7 @@ export function useTaskCelebrations(identity: Ref<string>, completions: Ref<Comp
     mounted = false
     for (const timer of timers) clearTimeout(timer)
     document.removeEventListener('visibilitychange', reconcile)
+    window.removeEventListener('storage', storageChanged)
   })
   return computed(() => completions.value.filter((row) => displayed.value.includes(row.taskKey)))
 }

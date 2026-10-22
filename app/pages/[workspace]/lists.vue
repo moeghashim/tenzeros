@@ -1,6 +1,8 @@
 <script setup lang="ts">
 const route = useRoute()
-const { data } = await useFetch(() => `/api/workspaces/${String(route.params.workspace)}/records`)
+const { data } = await useApiFetch(
+  () => `/api/workspaces/${String(route.params.workspace)}/records`,
+)
 useHead({ title: 'Records & Lists — Tenzeros' })
 </script>
 <template>
@@ -41,7 +43,7 @@ li {
   background: white;
 }
 li span {
-  color: #777;
+  color: var(--color-textSecondary);
 }
 small {
   background: #f0f0f0;

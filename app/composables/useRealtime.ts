@@ -12,6 +12,7 @@ const connections = new WeakMap<NuxtApp, Connection>()
  * EventSource handles retry/backoff; onConnected reconciles events missed while disconnected.
  */
 export function useRealtime(subscriber: Subscriber = {}) {
+  const $fetch = useApi()
   const app = useNuxtApp()
   let connection = connections.get(app)
   if (!connection) {
@@ -43,6 +44,9 @@ export function useRealtime(subscriber: Subscriber = {}) {
     source.addEventListener('onboardingFlowStatusChanged', receive as EventListener)
     source.onerror = () => {
       state.status.value = 'offline'
+      // EventSource does not expose HTTP status. Probe only on connection errors
+      // so an expired session follows the same 401 path as ordinary API calls.
+      void $fetch('/api/auth/me', { retry: 0 }).catch(() => {})
     }
   })
   onUnmounted(() => {

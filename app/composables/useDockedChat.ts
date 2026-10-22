@@ -1,7 +1,9 @@
 import type { ChatState, StoredMessage, TurnInput, ControlResponse, ChatEvent } from '#shared/chat'
 import { readChatStream } from '../utils/chat-stream'
 export function useDockedChat(props: { workspaceKey: string; workspaceId: string }) {
+  const $fetch = useApi()
   const surface = useChatSurface()
+  const router = useRouter()
   const messages = ref<StoredMessage[]>([]),
     state = ref<ChatState>({ revision: 0 }),
     title = ref('Tenzeros'),
@@ -13,6 +15,7 @@ export function useDockedChat(props: { workspaceKey: string; workspaceId: string
     toolLabel = ref(''),
     scroller = ref<HTMLElement>()
   let abort: AbortController | undefined
+  let lastInput: TurnInput = { start: true }
   async function load(id: string) {
     const result = await $fetch(`/api/chats/${id}`)
     if (surface.chatId.value !== id) return
@@ -35,6 +38,7 @@ export function useDockedChat(props: { workspaceKey: string; workspaceId: string
   async function send(input: TurnInput) {
     const id = surface.chatId.value
     if (!id || busy.value) return
+    lastInput = input
     busy.value = true
     error.value = ''
     streamed.value = ''
@@ -46,16 +50,22 @@ export function useDockedChat(props: { workspaceKey: string; workspaceId: string
         body: JSON.stringify(input),
         signal: abort.signal,
       })
+      if (response.status === 401) {
+        await router.replace('/login')
+        return
+      }
+      let streamError = ''
       await readChatStream(response, (event: ChatEvent) => {
         if (surface.chatId.value !== id) return
         if (event.type === 'text_delta') streamed.value += event.text
         if (event.type === 'tool_call_start') toolLabel.value = event.name.replaceAll('_', ' ')
         if (event.type === 'control') state.value.activeControl = event.control
         if (event.type === 'done') state.value = event.state
-        if (event.type === 'error') error.value = event.message
+        if (event.type === 'error') streamError = event.message
       })
       if (surface.chatId.value === id) {
         await load(id)
+        if (streamError) error.value = streamError
         await completed()
       }
     } catch (cause) {
@@ -69,6 +79,35 @@ export function useDockedChat(props: { workspaceKey: string; workspaceId: string
       }
     }
   }
+  async function retry() {
+    const id = surface.chatId.value
+    if (!id || busy.value) return
+    try {
+      await load(id)
+      if (state.value.completed) return await completed()
+      if (state.value.error) return await send({ retry: true })
+      if (state.value.started && lastInput.start) return
+      // A lost transport response may already have advanced the persisted control.
+      if (
+        lastInput.onboardingResponse &&
+        state.value.activeControl &&
+        lastInput.onboardingResponse.toolCallId !== state.value.activeControl.id
+      )
+        return
+      await send(lastInput)
+    } catch {
+      error.value = 'Could not reconnect to this chat. Please retry.'
+    }
+  }
+  useRealtime({
+    onConnected: () => {
+      const id = surface.chatId.value
+      if (id && !busy.value)
+        void load(id).catch(() => {
+          error.value = 'Could not refresh this chat. Please retry.'
+        })
+    },
+  })
   async function answer(answer: ControlResponse) {
     const control = state.value.activeControl?.control
     await send({
@@ -106,6 +145,7 @@ export function useDockedChat(props: { workspaceKey: string; workspaceId: string
       messages.value = []
       streamed.value = ''
       state.value = { revision: 0 }
+      lastInput = { start: true }
       if (!id) return
       loading.value = true
       try {
@@ -133,10 +173,9 @@ export function useDockedChat(props: { workspaceKey: string; workspaceId: string
     await nextTick()
     scroller.value?.scrollTo({ top: scroller.value.scrollHeight, behavior: 'instant' })
   })
-  onMounted(() => window.addEventListener('keydown', keyboard))
   onUnmounted(() => {
     abort?.abort()
-    window.removeEventListener('keydown', keyboard)
+    surface.close()
   })
 
   return {
@@ -155,5 +194,7 @@ export function useDockedChat(props: { workspaceKey: string; workspaceId: string
     send,
     answer,
     advance,
+    retry,
+    keyboard,
   }
 }

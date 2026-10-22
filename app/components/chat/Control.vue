@@ -62,14 +62,18 @@ function keyboard(event: KeyboardEvent) {
     submit()
   }
 }
-onMounted(() => window.addEventListener('keydown', keyboard))
-onUnmounted(() => window.removeEventListener('keydown', keyboard))
+const controls = ref<HTMLElement>()
+watch([() => props.pending.id, () => props.busy], async () => {
+  await nextTick()
+  if (!props.busy)
+    controls.value?.querySelector<HTMLButtonElement>('button:not(.collapse)')?.focus()
+})
 </script>
 <template>
-  <section class="control" aria-label="Onboarding options">
+  <section ref="controls" class="control" aria-label="Onboarding options" @keydown="keyboard">
     <button
       class="collapse"
-      :aria-label="minimized ? 'Expand onboarding options' : 'Minimize onboarding options'"
+      :aria-label="`${minimized ? '+' : '−'} ${control.kind === 'choice' ? 'Questions' : 'Next step'}: ${minimized ? 'Expand' : 'Minimize'} onboarding options`"
       :aria-expanded="!minimized"
       @click="minimized = !minimized"
     >
@@ -162,7 +166,7 @@ onUnmounted(() => window.removeEventListener('keydown', keyboard))
   border: 0;
   background: none;
   padding: 0 0 10px;
-  color: #777;
+  color: var(--color-textSecondary);
   font-size: 12px;
 }
 p {
@@ -184,12 +188,12 @@ button[aria-pressed='true'] {
   background: #edf6ff;
 }
 .letter {
-  color: #888;
+  color: var(--color-textTertiary);
   font-size: 11px;
 }
 small {
   display: block;
-  color: #777;
+  color: var(--color-textSecondary);
   font-size: 11px;
   margin-top: 4px;
 }

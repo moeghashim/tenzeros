@@ -91,7 +91,7 @@ h2 {
 }
 p {
   font-size: 13px;
-  color: #777;
+  color: var(--color-textSecondary);
   max-width: 430px;
   margin: 0 auto;
   line-height: 1.5;

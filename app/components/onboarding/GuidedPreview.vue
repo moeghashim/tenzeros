@@ -146,11 +146,11 @@ small {
   background: #eee;
 }
 .fit-1 {
-  color: #218358;
+  color: var(--color-successText);
   background: #e6f6eb;
 }
 .fit-2 {
-  color: #ab6400;
+  color: var(--color-warningText);
   background: #fff7c2;
 }
 .sequence {

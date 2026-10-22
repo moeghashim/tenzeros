@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const $fetch = useApi()
 import { notetakerProviders } from '#shared/onboarding'
 const props = defineProps<{
   kind: 'google' | 'notetaker' | 'linkedin' | 'instructions'
@@ -118,7 +119,7 @@ p {
   background: #f5f5f5;
   border-radius: 10px;
   font-size: 12px;
-  color: #777;
+  color: var(--color-textSecondary);
 }
 .actions {
   display: flex;

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const $fetch = useApi()
 const props = defineProps<{ source: string; workspaceKey: string }>()
 const emit = defineEmits<{ close: []; imported: [] }>()
 const busy = ref(false),

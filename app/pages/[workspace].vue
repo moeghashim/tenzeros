@@ -7,7 +7,7 @@ const route = useRoute()
 const requestFetch = useRequestFetch()
 const { data: account } = await useAsyncData('account', () => requestFetch('/api/auth/me'))
 const key = computed(() => String(route.params.workspace))
-const { data, error, refresh } = await useFetch(
+const { data, error, refresh } = await useApiFetch(
   () => `/api/workspaces/${encodeURIComponent(key.value)}`,
 )
 if (error.value)
@@ -32,7 +32,7 @@ const showOnboarding = computed(() => {
         value.workspace.onboardingStartedAt)),
   )
 })
-useRealtime({
+const { status: connectionStatus } = useRealtime({
   onConnected: () => {
     reconcile()
   },
@@ -72,7 +72,12 @@ useRealtime({
       "
       @dismissed="reconcile"
     />
-    <main id="main" tabindex="-1"><NuxtPage /></main>
+    <main id="main" tabindex="-1">
+      <p v-if="connectionStatus === 'offline'" class="reconnecting" role="status">
+        Reconnecting to live updates… Your workspace will refresh when connected.
+      </p>
+      <NuxtPage />
+    </main>
     <ChatDocked :workspace-key="key" :workspace-id="data.workspace.id" />
   </div>
 </template>
@@ -84,6 +89,11 @@ useRealtime({
 main {
   flex: 1;
   min-width: 0;
+}
+.reconnecting {
+  padding: 12px 24px;
+  background: #fff6e7;
+  color: #684100;
 }
 .skip {
   position: fixed;

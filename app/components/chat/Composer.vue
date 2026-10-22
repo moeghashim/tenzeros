@@ -18,6 +18,7 @@ function send() {
       maxlength="20000"
       rows="2"
       @keydown.meta.enter.prevent="!busy && !disabled && send()"
+      @keydown.ctrl.enter.prevent="!busy && !disabled && send()"
     /><button type="submit" class="primary" :disabled="busy || disabled || !content.trim()">
       Send
     </button>

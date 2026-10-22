@@ -43,7 +43,7 @@
   --letter-spacing-tighter: -0.02em;
   --color-textPrimary: #202020;
   --color-textSecondary: #646464;
-  --color-textTertiary: #838383;
+  --color-textTertiary: #686868;
   --color-textQuaternary: #cecece;
   --color-textDisabled: #d9d9d9;
   --color-bgPrimary: #fff;
@@ -71,11 +71,11 @@
   --color-accentSolidHover: #0588f0;
   --color-accentBorder: #8ec8f6;
   --color-successBg: #e6f6eb;
-  --color-successText: #218358;
+  --color-successText: #196b46;
   --color-successSolid: #30a46c;
   --color-successBorder: #8eceaa;
   --color-warningBg: #fff7c2;
-  --color-warningText: #ab6400;
+  --color-warningText: #925400;
   --color-warningSolid: #ffc53d;
   --color-warningBorder: #e9c162;
   --color-destructiveBg: #feeaed;

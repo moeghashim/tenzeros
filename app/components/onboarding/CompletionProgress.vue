@@ -75,6 +75,7 @@ onUnmounted(() => {
     <div
       class="track"
       role="progressbar"
+      aria-label="Onboarding rewards"
       :aria-valuenow="Math.round(summary.percent)"
       :aria-valuemin="0"
       :aria-valuemax="100"
@@ -168,7 +169,7 @@ onUnmounted(() => {
   height: 24px;
   min-width: 40px;
   padding: 2px 6px;
-  background: #1888f2;
+  background: #0969c7;
   color: white;
   font-weight: 500;
   margin-bottom: 8px;

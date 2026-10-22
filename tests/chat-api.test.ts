@@ -258,4 +258,16 @@ describe.sequential('chat HTTP endpoints', () => {
     ).toBe(409)
     script = undefined
   })
+  it('rate-limits chat turns across chats for the same authenticated user', async () => {
+    const id = await startChat()
+    let response: Response | undefined
+    for (let i = 0; i < 61; i++) {
+      response = await request(`/api/chats/${id}/messages`, { invalid: true })
+      if (response.status === 429) break
+    }
+    expect(response?.status).toBe(429)
+    expect(Number(response?.headers.get('retry-after'))).toBeGreaterThan(0)
+    const anotherId = await startChat()
+    expect((await request(`/api/chats/${anotherId}/messages`, { start: true })).status).toBe(429)
+  })
 })

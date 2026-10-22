@@ -30,7 +30,10 @@ const config = llmRuntimeConfig
 function client() {
   const settings = config()
   if (!settings.deepseekApiKey)
-    throw new LLMError('MISSING_API_KEY', 'Set DEEPSEEK_API_KEY to generate workspace context.')
+    throw new LLMError(
+      'MISSING_API_KEY',
+      'AI is not configured. Set DEEPSEEK_API_KEY on the server, then retry.',
+    )
   return new OpenAI({
     apiKey: settings.deepseekApiKey,
     baseURL: settings.deepseekBaseUrl,

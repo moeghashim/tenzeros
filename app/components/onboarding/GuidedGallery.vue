@@ -1,15 +1,25 @@
 <script setup lang="ts">
+const $fetch = useApi()
 import { IconChevronLeft, IconChevronRight, IconLock, IconCheck } from '@tabler/icons-vue'
 import confetti from 'canvas-confetti'
+import { createCoalescedRefresh } from '../../utils/coalescedRefresh'
 import { orderedFlows, type FlowStatus } from '#shared/onboarding'
 const props = defineProps<{ workspaceId: string; hasMailbox: boolean }>()
 const emit = defineEmits<{ unlock: []; toast: [message: string] }>()
-const { data } = await useFetch('/api/onboarding/flows/statuses', {
+const { data, refresh } = await useApiFetch('/api/onboarding/flows/statuses', {
   query: { workspaceId: props.workspaceId },
 })
 const statuses = ref<Record<string, FlowStatus>>({ ...data.value?.data.statuses })
 const surface = useChatSurface()
 const chatIds = ref<Record<string, string>>({ ...data.value?.data.chatIds })
+const refreshQueue = createCoalescedRefresh(async () => {
+  await refresh()
+  if (data.value) {
+    statuses.value = { ...data.value.data.statuses }
+    chatIds.value = { ...data.value.data.chatIds }
+  }
+})
+onScopeDispose(refreshQueue.dispose)
 const starting = ref(false),
   celebrating = ref('')
 // Capture ordering once: live status changes must not move cards under the pointer.
@@ -121,6 +131,9 @@ onUnmounted(() => {
   clearTimeout(celebrationTimer)
 })
 useRealtime({
+  onConnected: () => {
+    void refreshQueue.schedule().catch(() => {})
+  },
   onEvent: (event) => {
     if (
       event.workspaceId === props.workspaceId &&
@@ -155,7 +168,15 @@ useRealtime({
         </button>
       </div>
     </header>
-    <div ref="track" class="track" @scroll="measure">
+    <div
+      ref="track"
+      class="track"
+      tabindex="0"
+      aria-label="Guided setups"
+      @scroll="measure"
+      @keydown.right.self.prevent="scroll(1)"
+      @keydown.left.self.prevent="scroll(-1)"
+    >
       <component
         :is="statuses[flow.key] && statuses[flow.key] !== 'unstarted' ? 'article' : 'button'"
         v-for="flow in flows"
@@ -229,7 +250,7 @@ h2 {
 }
 p {
   font-size: 12px;
-  color: #777;
+  color: var(--color-textSecondary);
 }
 .controls {
   display: flex;

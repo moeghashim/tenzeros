@@ -17,7 +17,7 @@ describe('asynchronous AI context bootstrap', () => {
       off = realtimeHub.subscribe([workspace.id], receive)
     const fetchHomepageText = vi.fn().mockResolvedValue('Acme builds useful tools.')
     await bootstrapWorkspace(db, workspace.id, { fetchHomepageText, chat })
-    expect(fetchHomepageText).toHaveBeenCalledWith('example.com')
+    expect(fetchHomepageText).not.toHaveBeenCalled()
     expect(db.select().from(aiContexts).all()).toHaveLength(4)
     expect(db.select().from(workspaces).get()?.contextStatus).toBe('ready')
     expect(receive).toHaveBeenCalledTimes(5)

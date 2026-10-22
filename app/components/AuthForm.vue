@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const $fetch = useApi()
 const props = defineProps<{ mode: 'signup' | 'login' }>()
 const form = reactive({ name: '', email: '', workspaceName: '', domain: '' })
 const mounted = ref(false)

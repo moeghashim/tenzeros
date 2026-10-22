@@ -79,7 +79,7 @@ h2 {
 p {
   font-size: 13px;
   line-height: 1.5;
-  color: #777;
+  color: var(--color-textSecondary);
 }
 .status {
   display: inline-flex;

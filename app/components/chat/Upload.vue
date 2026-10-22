@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const $fetch = useApi()
 const props = defineProps<{ chatId: string; busy: boolean }>()
 const emit = defineEmits<{ uploaded: []; uploading: [value: boolean] }>()
 const error = ref('')
@@ -52,7 +53,7 @@ async function upload(event: Event) {
   margin: 12px 0;
 }
 .upload p {
-  color: #777;
+  color: var(--color-textSecondary);
   margin: 8px 0;
 }
 input {

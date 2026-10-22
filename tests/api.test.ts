@@ -189,4 +189,13 @@ describe.sequential('real h3 API handlers and cookie sessions', () => {
       (await fetch(`${base}/api/auth/me`, { headers: { cookie: clearedCookie } })).status,
     ).toBe(401)
   })
+  it('rate-limits signup by socket IP and ignores forged forwarded headers', async () => {
+    let response: Response | undefined
+    for (let i = 0; i < 21; i++) {
+      response = await post('/api/auth/signup', {}, { 'x-forwarded-for': `203.0.113.${i}` })
+      if (response.status === 429) break
+    }
+    expect(response?.status).toBe(429)
+    expect(Number(response?.headers.get('retry-after'))).toBeGreaterThan(0)
+  })
 })

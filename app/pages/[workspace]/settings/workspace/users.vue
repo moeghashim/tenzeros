@@ -42,6 +42,6 @@ li {
   padding: 16px;
 }
 li span {
-  color: #777;
+  color: var(--color-textSecondary);
 }
 </style>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const $fetch = useApi()
 import { IconX } from '@tabler/icons-vue'
 import { connectErrorMessage, type TaskKey } from '#shared/onboarding'
 useHead({ title: 'Get started — Tenzeros' })
@@ -280,7 +281,7 @@ h1 {
   font-weight: 600;
 }
 .bento-header p {
-  color: #777;
+  color: var(--color-textSecondary);
   font-size: 13px;
 }
 .bento-grid {

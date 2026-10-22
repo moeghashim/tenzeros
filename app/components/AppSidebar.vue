@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { trapDialogFocus } from '../utils/dialog-focus'
+const $fetch = useApi()
 const chatSurface = useChatSurface()
 import {
   IconLayoutSidebarLeftCollapse,
@@ -199,11 +201,12 @@ onUnmounted(() => {
       </header>
       <button
         class="search"
-        aria-label="Search workspace (Command or Control K)"
+        :aria-label="collapsed ? 'Search workspace' : 'Search ⌘K'"
+        aria-keyshortcuts="Meta+K Control+K"
         @click="palette?.showModal()"
       >
         <IconSearch :size="16" /><span v-if="!collapsed">Search</span
-        ><kbd v-if="!collapsed">⌘K</kbd>
+        ><kbd v-if="!collapsed" aria-hidden="true">⌘K</kbd>
       </button>
       <nav aria-label="Main">
         <div v-if="showOnboarding" class="onboarding-nav">
@@ -321,7 +324,11 @@ onUnmounted(() => {
       @pointerdown="resize"
       @keydown="resizeKey"
     />
-    <dialog ref="dismissDialog" aria-labelledby="dismiss-title">
+    <dialog
+      ref="dismissDialog"
+      aria-labelledby="dismiss-title"
+      @keydown.tab="trapDialogFocus($event, dismissDialog)"
+    >
       <h2 id="dismiss-title">Dismiss onboarding?</h2>
       <p>Any unclaimed onboarding credits will be lost. This can't be undone.</p>
       <p v-if="dismissError" role="alert" class="error">{{ dismissError }}</p>
@@ -334,6 +341,7 @@ onUnmounted(() => {
     </dialog>
     <dialog
       ref="palette"
+      @keydown.tab="trapDialogFocus($event, palette)"
       aria-labelledby="search-title"
       @click="
         (event) => {

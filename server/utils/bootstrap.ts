@@ -5,6 +5,7 @@ import { aiContexts, workspaces } from '../db/schema'
 import { generatedContextsSchema, contextNames } from '../../shared/validation'
 import { chat, LLMError } from './llm'
 import { fetchHomepageText } from './homepage'
+import { llmRuntimeConfig } from './runtime'
 import { emitChange, emitCustomEvent } from './realtime'
 
 export async function bootstrapWorkspace(
@@ -15,7 +16,9 @@ export async function bootstrapWorkspace(
   const workspace = db.select().from(workspaces).where(eq(workspaces.id, workspaceId)).get()
   if (!workspace || workspace.contextStatus === 'ready') return
   try {
-    const text = await dependencies.fetchHomepageText(workspace.domain)
+    const text = llmRuntimeConfig().llmMock
+      ? ''
+      : await dependencies.fetchHomepageText(workspace.domain)
     const result = await dependencies.chat({
       json: true,
       messages: [

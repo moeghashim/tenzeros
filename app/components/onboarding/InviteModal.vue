@@ -1,11 +1,12 @@
 <script setup lang="ts">
+const $fetch = useApi()
 const props = defineProps<{ workspaceKey: string; workspaceId: string }>()
 const emit = defineEmits<{ close: []; invited: [] }>()
 const emails = ref(''),
   role = ref<'member' | 'admin'>('member'),
   busy = ref(false),
   error = ref('')
-const { data: suggestions } = await useFetch('/api/onboarding/invite-suggestions', {
+const { data: suggestions } = await useApiFetch('/api/onboarding/invite-suggestions', {
   query: { workspaceId: props.workspaceId },
 })
 async function invite() {
@@ -70,7 +71,7 @@ label {
   gap: 6px;
 }
 .demo {
-  color: #777;
+  color: var(--color-textSecondary);
   background: #f5f5f5;
   padding: 12px;
   border-radius: 10px;

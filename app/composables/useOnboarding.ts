@@ -2,7 +2,9 @@ import { onboardingDone, relevantCompletions, visibleTasks } from '#shared/onboa
 export async function useOnboarding() {
   const route = useRoute()
   const key = computed(() => String(route.params.workspace))
-  const result = await useFetch(() => `/api/workspaces/${encodeURIComponent(key.value)}/onboarding`)
+  const result = await useApiFetch(
+    () => `/api/workspaces/${encodeURIComponent(key.value)}/onboarding`,
+  )
   const tasks = computed(() =>
     result.data.value ? visibleTasks(result.data.value.role, result.data.value.workspace) : [],
   )

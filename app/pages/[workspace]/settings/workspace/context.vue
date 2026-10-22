@@ -1,11 +1,12 @@
 <script setup lang="ts">
+const $fetch = useApi()
 import { createCoalescedRefresh } from '../../../../utils/coalescedRefresh'
 const route = useRoute()
 const url = computed(
   () => `/api/workspaces/${encodeURIComponent(String(route.params.workspace))}/contexts`,
 )
 const { data, error, refresh } =
-  await useFetch<import('../../../../../shared/api').WorkspaceContexts>(url)
+  await useApiFetch<import('../../../../../shared/api').WorkspaceContexts>(url)
 const refreshQueue = createCoalescedRefresh(() => refresh({ dedupe: 'defer' }))
 onScopeDispose(refreshQueue.dispose)
 // Keep the initial connection reconciliation: events can arrive between the
@@ -27,7 +28,7 @@ watch(
   },
   { immediate: true },
 )
-const { status } = useRealtime({
+useRealtime({
   onConnected: scheduleRefresh,
   onEvent: (event) => {
     if (
@@ -89,9 +90,6 @@ useHead({ title: 'AI context — Tenzeros' })
         {{ data.status === 'pending' ? 'Restart if interrupted' : 'Retry generation' }}
       </button>
     </div>
-    <p v-if="status === 'offline'" class="muted connection" role="status">
-      Reconnecting to live updates…
-    </p>
     <p role="status" class="save-status">{{ message }}</p>
     <article v-for="context in data?.contexts" :key="context.id" class="context-card">
       <h2 :id="`${context.id}-heading`">

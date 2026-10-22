@@ -16,10 +16,32 @@ const {
   send,
   answer,
   advance,
+  retry,
+  keyboard,
 } = useDockedChat(props)
+const panel = ref<HTMLElement>()
+let opener: HTMLElement | null = null
+watch(surface.chatId, async (id, previous) => {
+  if (id && !previous) {
+    opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    await nextTick()
+    panel.value?.querySelector<HTMLButtonElement>('button')?.focus()
+  } else if (!id && previous) {
+    await nextTick()
+    if (opener?.isConnected) opener.focus()
+    else document.getElementById('main')?.focus()
+  }
+})
 </script>
 <template>
-  <aside v-if="surface.chatId.value" class="docked" aria-label="Tenzeros chat">
+  <aside
+    v-if="surface.chatId.value"
+    ref="panel"
+    class="docked"
+    aria-label="Tenzeros chat"
+    @keydown="keyboard"
+    @keydown.esc.stop="surface.close()"
+  >
     <header>
       <div>
         <small>GUIDED SETUP</small>
@@ -51,10 +73,7 @@ const {
     </div>
     <footer>
       <div v-if="error" class="error" role="alert">
-        {{ error
-        }}<button :disabled="busy" @click="send(state.error ? { retry: true } : { start: true })">
-          Retry
-        </button>
+        {{ error }}<button :disabled="busy" @click="retry">Retry</button>
       </div>
       <ChatControl
         v-if="state.activeControl"
@@ -101,7 +120,7 @@ header {
 header small {
   font-size: 9px;
   letter-spacing: 0.12em;
-  color: #888;
+  color: var(--color-textTertiary);
 }
 h2 {
   margin: 5px 0 0;
@@ -124,7 +143,7 @@ header button {
 .message > small {
   display: block;
   font-size: 10px;
-  color: #777;
+  color: var(--color-textSecondary);
   margin-bottom: 6px;
 }
 .user {
@@ -140,7 +159,7 @@ footer {
 }
 .working {
   font-size: 12px;
-  color: #777;
+  color: var(--color-textSecondary);
 }
 .error button {
   margin: 8px;

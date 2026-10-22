@@ -5,7 +5,7 @@ import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import * as schema from './schema'
 
-export function openDatabase(filename = resolve('.data/tenzeros.db')) {
+export function openDatabase(filename = process.env.DATABASE_PATH || resolve('.data/tenzeros.db')) {
   if (filename !== ':memory:') mkdirSync(dirname(filename), { recursive: true })
   const sqlite = new Database(filename)
   sqlite.pragma('foreign_keys = ON')

@@ -3,9 +3,11 @@ import { requireChat, assertCurrentFlow } from '../../../ai/flow-state'
 import { requireSameOrigin } from '../../../utils/auth'
 import { acquireChat, runTurn, validateTurn } from '../../../ai/chat-engine'
 import { turnSchema } from '../../../../shared/chat'
+import { enforceRateLimit, chatLimit } from '../../../utils/rate-limit'
 export default defineEventHandler(async (event) => {
   requireSameOrigin(event)
   const { db, chat, actor } = await requireChat(event)
+  enforceRateLimit(event, chatLimit(actor.userId))
   const input = await readValidatedBody(event, turnSchema.parse)
   assertCurrentFlow(db, chat)
   validateTurn(chat, input)
