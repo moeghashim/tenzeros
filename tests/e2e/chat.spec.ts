@@ -1,17 +1,11 @@
 import { test, expect } from '@playwright/test'
+import { signup } from './helpers'
 test('guided agents flow: start, resume after refresh, select, complete and celebrate', async ({
   page,
 }) => {
   const errors: string[] = []
   page.on('pageerror', (e) => errors.push(e.message))
-  await page.goto('/signup')
-  await expect(page.getByRole('button', { name: 'Create workspace', exact: true })).toBeEnabled()
-  await page.locator('input[name=name]').fill('M3 E2E')
-  await page.locator('input[name=email]').fill(`m3-e2e-${Date.now()}@example.test`)
-  await page.locator('input[name=workspaceName]').fill('M3 E2E Workspace')
-  await page.locator('input[name=domain]').fill('stripe.com')
-  await page.getByRole('button', { name: 'Create workspace', exact: true }).click()
-  await page.waitForURL(/\/onboarding$/)
+  await signup(page)
   await expect(page.getByRole('link', { name: 'Reports', exact: true })).toBeInViewport()
   const card = page.locator('[data-flow="activate-agents"]')
   await card.click()

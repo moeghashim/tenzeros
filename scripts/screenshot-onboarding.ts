@@ -126,7 +126,8 @@ try {
     fullPage: true,
   })
   await page.getByRole('button', { name: /Set up your pipeline/ }).click()
-  await expect(page.getByRole('status')).toHaveText('Guided setup arrives in M3')
+  await expect(page.getByRole('complementary', { name: 'Tenzeros chat' })).toBeVisible()
+  await page.getByRole('button', { name: 'Close chat' }).click()
   // Responsive checks with both expanded and collapsed sidebar.
   for (const width of [900, 390]) {
     await page.setViewportSize({ width, height: 852 })

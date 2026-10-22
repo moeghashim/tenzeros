@@ -7,7 +7,7 @@ for (const route of ['signup', 'login'])
     page.on('request', (r) => {
       if (r.isNavigationRequest()) navigations.push(r.url())
     })
-    await page.goto(`http://127.0.0.1:3100/${route}`)
+    await page.goto(`http://localhost:3100/${route}`)
     await expect(page.locator('form')).toHaveAttribute('method', 'post')
     await expect(page.locator('button[type=submit]')).toBeDisabled()
     await page.locator('input[name=name]').fill('Private Name')

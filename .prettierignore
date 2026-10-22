@@ -8,3 +8,6 @@ research/
 .env.*
 pnpm-lock.yaml
 server/db/migrations/meta/
+.nuxt-e2e/
+playwright-report/
+test-results/

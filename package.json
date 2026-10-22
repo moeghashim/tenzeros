@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "nuxt dev",
     "build": "nuxt build",
-    "preview": "node --env-file=.env .output/server/index.mjs",
+    "preview": "pnpm start",
     "postinstall": "nuxt prepare",
     "typecheck": "nuxt typecheck && tsc -p tsconfig.tools.json",
     "test": "vitest run",
@@ -20,7 +20,8 @@
     "format:check": "prettier --check .",
     "test:screenshots": "tsx scripts/screenshot-onboarding.ts",
     "test:e2e": "playwright test",
-    "verify:real": "tsx scripts/verify-real-flows.ts"
+    "verify:real": "tsx scripts/verify-real-flows.ts",
+    "start": "node --env-file-if-exists=.env .output/server/index.mjs"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.8",
@@ -42,6 +43,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@playwright/test": "^1.64.1",
     "@types/better-sqlite3": "^7.6.13",
     "@types/canvas-confetti": "^1.9.0",
