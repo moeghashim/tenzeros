@@ -1,3 +1,4 @@
+import { untrustedData } from '../ai/grounding'
 import { eq } from 'drizzle-orm'
 import type { AppDatabase } from '../db'
 import { aiContexts, workspaces } from '../db/schema'
@@ -24,7 +25,7 @@ export async function bootstrapWorkspace(
         },
         {
           role: 'user',
-          content: JSON.stringify({
+          content: untrustedData({
             company: workspace.name,
             domain: workspace.domain,
             homepageText: text || '(Homepage unavailable)',

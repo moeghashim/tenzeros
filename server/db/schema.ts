@@ -107,6 +107,10 @@ export const chats = sqliteTable(
     userId: userId(),
     flowKey: text('flow_key'),
     title: text('title').notNull(),
+    state: text('state', { mode: 'json' })
+      .$type<import('../../shared/chat').ChatState>()
+      .notNull()
+      .default({ revision: 0 }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -311,6 +315,8 @@ export const imports = sqliteTable('imports', {
     .default('Pending'),
   filename: text('filename'),
   mapping: json('mapping'),
+  rows: text('rows', { mode: 'json' }).$type<string[][]>(),
+  chatId: text('chat_id').references(() => chats.id, { onDelete: 'cascade' }),
   recordCount: integer('record_count').notNull().default(0),
   error: text('error'),
   createdAt: createdAt(),

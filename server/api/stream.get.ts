@@ -11,9 +11,28 @@ export default defineEventHandler(async (event) => {
   const cleanup = realtimeHub.subscribe(
     userWorkspaces(getDb(), user.id).map((w) => w.workspace.id),
     (change) => {
+      if (
+        change.data.userId &&
+        ['chats', 'writingStyles'].includes(change.type === 'custom' ? '' : change.targetModel) &&
+        change.data.userId !== user.id
+      )
+        return
+      if (
+        change.type === 'custom' &&
+        change.event === 'onboardingFlowStatusChanged' &&
+        change.data.userId !== user.id
+      )
+        return
       // Recheck access so a revoked membership cannot keep receiving events.
       if (userWorkspaces(getDb(), user.id).some((w) => w.workspace.id === change.workspaceId))
-        void stream.push({ data: JSON.stringify(change) }).catch(() => stream.close())
+        void stream
+          .push({
+            ...(change.type === 'custom' && change.event === 'onboardingFlowStatusChanged'
+              ? { event: change.event }
+              : {}),
+            data: JSON.stringify(change),
+          })
+          .catch(() => stream.close())
     },
   )
   const heartbeat = setInterval(() => {

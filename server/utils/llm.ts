@@ -1,4 +1,5 @@
 import OpenAI from 'openai'
+import { AsyncLocalStorage } from 'node:async_hooks'
 import { llmRuntimeConfig } from './runtime'
 import { contextNames } from '../../shared/validation'
 
@@ -36,7 +37,71 @@ function client() {
     maxRetries: 1,
   })
 }
+type MockStep = ChatResult | Error | ((options: ChatOptions) => ChatResult)
+const scripts = new AsyncLocalStorage<MockStep[]>()
+/** Request-local test scripts. Never changes real-provider behavior. */
+export function withMockScript<T>(steps: MockStep[], run: () => T): T {
+  return scripts.run([...steps], run)
+}
+function mockCall(name: string, args: unknown): ChatResult {
+  return {
+    content: null,
+    tool_calls: [
+      {
+        id: `mock-${crypto.randomUUID()}`,
+        type: 'function',
+        function: { name, arguments: JSON.stringify(args) },
+      },
+    ],
+  }
+}
 function mockResult(options: ChatOptions): ChatResult {
+  const script = scripts.getStore()
+  if (script) {
+    const step = script.shift()
+    if (!step) throw new LLMError('INVALID_RESPONSE', 'Mock script exhausted')
+    if (step instanceof Error) throw step
+    return typeof step === 'function' ? step(options) : step
+  }
+  if (options.tools?.some((t) => t.type === 'function' && t.function.name === 'enable_agents')) {
+    const calls = options.messages.flatMap((m) =>
+      m.role === 'assistant' ? (m.tool_calls || []).filter((t) => t.type === 'function') : [],
+    )
+    const has = (name: string) =>
+      calls.some((t) => t.type === 'function' && t.function.name === name)
+    if (!calls.length)
+      return mockCall('present_onboarding_control', { kind: 'continue', label: 'Start setup' })
+    if (!has('list_agents')) return mockCall('list_agents', {})
+    const listCall = calls.find((t) => t.type === 'function' && t.function.name === 'list_agents')!
+    const result = options.messages.find((m) => m.role === 'tool' && m.tool_call_id === listCall.id)
+    const agents = JSON.parse(
+      String(result?.content)
+        .split('UNTRUSTED_DATA_JSON_BEGIN\n')[1]!
+        .split('\nUNTRUSTED_DATA_JSON_END')[0]!,
+    ) as { id: string; name: string }[]
+    if (
+      calls.filter((t) => t.type === 'function' && t.function.name === 'present_onboarding_control')
+        .length === 1
+    )
+      return mockCall('present_onboarding_control', {
+        kind: 'choice',
+        prompt: 'Which agents would you like to enable?',
+        selectionMode: 'multiple',
+        options: agents.map((a) => ({ id: a.id, label: a.name })),
+      })
+    if (!has('enable_agents')) {
+      const answer = [...options.messages]
+        .reverse()
+        .find((m) => m.role === 'tool' && String(m.content).includes('selectedOptionIds'))
+      const selected = JSON.parse(
+        String(answer?.content)
+          .split('UNTRUSTED_DATA_JSON_BEGIN\n')[1]!
+          .split('\nUNTRUSTED_DATA_JSON_END')[0]!,
+      )
+      return mockCall('enable_agents', { agentIds: selected.selectedOptionIds })
+    }
+    return mockCall('complete_flow', {})
+  }
   if (options.json)
     return {
       content: JSON.stringify({
@@ -108,6 +173,11 @@ export async function* streamChat(options: ChatOptions): AsyncGenerator<ChatDelt
       { signal: options.signal },
     )
     for await (const chunk of stream) {
+      if (chunk.choices[0]?.finish_reason === 'length')
+        throw new LLMError(
+          'INVALID_RESPONSE',
+          'DeepSeek returned an incomplete response. Please retry.',
+        )
       if (chunk.choices[0]?.delta) yield chunk.choices[0].delta
     }
   } catch (error) {

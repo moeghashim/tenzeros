@@ -137,10 +137,10 @@ export const flowCatalogue = [
     description: 'Tenzeros learns your style so drafts sound like you.',
   },
 ] as const
-export type FlowStatus = 'not_started' | 'in_progress' | 'completed'
+export type FlowStatus = 'unstarted' | 'active' | 'completed'
 export function orderedFlows(statuses: Record<string, FlowStatus>) {
   const rank = (key: string) =>
-    statuses[key] === 'in_progress' ? 0 : statuses[key] === 'completed' ? 2 : 1
+    statuses[key] === 'active' ? 0 : statuses[key] === 'completed' ? 2 : 1
   return [...flowCatalogue].sort((a, b) => rank(a.key) - rank(b.key))
 }
 export function connectErrorMessage(status: string, provider: string, email?: string) {

@@ -15,6 +15,13 @@
       "when": 1792704264629,
       "tag": "0001_neat_sally_floyd",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1792707053165,
+      "tag": "0002_flaky_tusk",
+      "breakpoints": true
     }
   ]
 }

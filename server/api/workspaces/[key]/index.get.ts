@@ -1,6 +1,6 @@
 import { defineEventHandler, getValidatedRouterParams } from 'h3'
 import { z } from 'zod'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { getDb } from '../../../db'
 import { chats, subscriptions } from '../../../db/schema'
 import { requireUser } from '../../../utils/auth'
@@ -19,6 +19,10 @@ export default defineEventHandler(async (event) => {
       .from(subscriptions)
       .where(eq(subscriptions.workspaceId, result.workspace.id))
       .get(),
-    chats: getDb().select().from(chats).where(eq(chats.workspaceId, result.workspace.id)).all(),
+    chats: getDb()
+      .select()
+      .from(chats)
+      .where(and(eq(chats.workspaceId, result.workspace.id), eq(chats.userId, user.id)))
+      .all(),
   }
 })

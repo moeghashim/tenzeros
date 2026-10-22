@@ -30,7 +30,7 @@ export function onboardingTransaction<T>(
   for (const change of changes) emitChange(workspaceId, change.model, change.op, change.row)
   return result
 }
-function member(tx: Tx, actor: Actor, admin = false) {
+export function requireActor(tx: Pick<AppDatabase, 'select'>, actor: Actor, admin = false) {
   const row = tx
     .select()
     .from(s.memberships)
@@ -49,7 +49,7 @@ function member(tx: Tx, actor: Actor, admin = false) {
 /** Call only from a qualifying domain write, inside its transaction. Partial indexes arbitrate retries. */
 export function completeTask({ tx, changes }: Mutation, actor: Actor, taskKey: TaskKey) {
   const task = taskCatalogue.find((task) => task.key === taskKey)!
-  const membership = member(tx, actor, task.scope === 'workspace')
+  const membership = requireActor(tx, actor, task.scope === 'workspace')
   const workspace = tx
     .select()
     .from(s.workspaces)
@@ -110,7 +110,7 @@ export function connectAccount(
   },
 ) {
   return onboardingTransaction(db, actor.workspaceId, (mutation) => {
-    member(mutation.tx, actor)
+    requireActor(mutation.tx, actor)
     const tables =
       input.kind === 'google'
         ? [s.mailboxes, s.calendars]
@@ -197,7 +197,7 @@ export function seedAgents(db: AppDatabase, workspaceId: string) {
 }
 export function toggleAgent(db: AppDatabase, actor: Actor, id: string, enabled: boolean) {
   return onboardingTransaction(db, actor.workspaceId, (mutation) => {
-    member(mutation.tx, actor, true)
+    requireActor(mutation.tx, actor, true)
     const row = mutation.tx
       .update(s.agents)
       .set({ enabled })
@@ -217,7 +217,7 @@ export function inviteTeam(
   role: 'admin' | 'member',
 ) {
   return onboardingTransaction(db, actor.workspaceId, (mutation) => {
-    member(mutation.tx, actor, true)
+    requireActor(mutation.tx, actor, true)
     const invited = []
     for (const email of new Set(emails)) {
       const existingUser = mutation.tx.select().from(s.users).where(eq(s.users.email, email)).get()
@@ -283,7 +283,7 @@ const sampleNames = [
 ]
 export function importDemo(db: AppDatabase, actor: Actor, source: string) {
   return onboardingTransaction(db, actor.workspaceId, (mutation) => {
-    member(mutation.tx, actor, true)
+    requireActor(mutation.tx, actor, true)
     const existing = mutation.tx
       .select()
       .from(s.imports)
@@ -347,7 +347,7 @@ export function importDemo(db: AppDatabase, actor: Actor, source: string) {
 }
 export function finishOnboarding(db: AppDatabase, actor: Actor, action: 'complete' | 'dismiss') {
   return onboardingTransaction(db, actor.workspaceId, (mutation) => {
-    const membership = member(mutation.tx, actor)
+    const membership = requireActor(mutation.tx, actor)
     const workspace = mutation.tx
       .select()
       .from(s.workspaces)

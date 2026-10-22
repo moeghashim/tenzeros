@@ -18,7 +18,9 @@
     "db:seed": "tsx scripts/seed.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test:screenshots": "tsx scripts/screenshot-onboarding.ts"
+    "test:screenshots": "tsx scripts/screenshot-onboarding.ts",
+    "test:e2e": "playwright test",
+    "verify:real": "tsx scripts/verify-real-flows.ts"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.8",
@@ -29,9 +31,12 @@
     "h3": "^1.15.4",
     "htmlparser2": "^12.0.0",
     "ipaddr.js": "^2.2.0",
+    "marked": "^18.1.1",
     "motion-v": "^2.8.0",
     "nuxt": "^4.0.0",
     "openai": "^6.0.0",
+    "papaparse": "^5.7.0",
+    "sanitize-html": "^2.18.1",
     "simple-icons": "^11.15.0",
     "vue": "~3.5.0",
     "zod": "^4.1.12"
@@ -41,6 +46,8 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^24.0.0",
+    "@types/papaparse": "^5.5.2",
+    "@types/sanitize-html": "^2.16.2",
     "drizzle-kit": "^0.31.5",
     "prettier": "^3.9.10",
     "tsx": "^4.20.6",
