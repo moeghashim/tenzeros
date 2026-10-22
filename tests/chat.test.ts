@@ -481,3 +481,70 @@ describe('CSV mapping and safe content', () => {
     expect(result).not.toMatch(/script|onerror|<img|href="javascript/)
   })
 })
+
+describe('complete offline walkthroughs', () => {
+  it.each<FlowKey>([
+    'pipeline-and-lists',
+    'activate-agents',
+    'existing-customers',
+    'target-account-list',
+    'start-outreach',
+    'personalize-emails',
+  ])('completes %s with the default deterministic mock', async (flowKey) => {
+    const { db, actor } = setup()
+    connectAccount(db, actor, { kind: 'google', email: accountInput.email, isDemo: true })
+    const flow = startFlow(db, actor, flowKey, 'restart')
+    const events: ChatEvent[] = []
+    const emit = (event: ChatEvent) => {
+      events.push(event)
+    }
+    await runTurn(db, actor, flow, { start: true }, emit)
+    for (let round = 0; round < 12 && !flow.state.completed; round++) {
+      expect(flow.state.error).toBeUndefined()
+      const pending = flow.state.activeControl!
+      expect(pending).toBeDefined()
+      const c = pending.control
+      const response =
+        c.kind === 'choice'
+          ? {
+              kind: 'choice' as const,
+              toolCallId: pending.id,
+              selectedOptionIds: [c.options[0]!.id],
+            }
+          : c.kind === 'conversation'
+            ? {
+                kind: 'conversation' as const,
+                toolCallId: pending.id,
+                responseText:
+                  flowKey === 'personalize-emails'
+                    ? 'Hi Alex, Thanks for our call today. Best, Morgan\n---\nHi Sam, Here are our short notes. Best, Morgan'
+                    : 'B2B SaaS companies needing recurring billing',
+              }
+            : { kind: 'continue' as const, toolCallId: pending.id, responseText: 'Continue' }
+      await runTurn(
+        db,
+        actor,
+        flow,
+        {
+          onboardingResponse: response,
+          ...(pending.finishesFlow ? { onboardingFinish: true } : {}),
+        },
+        emit,
+      )
+    }
+    expect(flow.state.completed).toBe(true)
+    expect(events.filter((e) => e.type === 'error')).toEqual([])
+  })
+  it('maps and imports CSV offline without a script', async () => {
+    const { db, actor } = setup(),
+      flow = startFlow(db, actor, 'csv-import', 'restart')
+    const { job } = await prepareCsv(
+      db,
+      actor,
+      flow.id,
+      'test.csv',
+      Buffer.from('Company,Email,Contact\nExample Co,alex@example.test,Alex'),
+    )
+    expect(importCsv(db, actor, flow.id, job.id).recordCount).toBe(2)
+  })
+})

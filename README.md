@@ -115,7 +115,7 @@ pnpm exec playwright install chromium
 pnpm test:e2e
 ```
 
-Playwright starts a mock server on port 3100 with a separate build directory. It verifies the signup/login forms with JavaScript disabled and runs the agents walkthrough through selection, refresh/resume, completion and restart. `CAPTURE_CHAT_SCREENSHOT=1 pnpm test:e2e` also updates `docs/screenshots/m3-docked-chat.png`. Vitest scripts provider responses per async test context using `withMockScript`, including errors and multi-round tool sequences.
+Playwright starts a mock server on port 3100 with a separate build directory. It verifies the signup/login forms with JavaScript disabled and runs the agents walkthrough through selection, refresh/resume, completion and restart. `CAPTURE_CHAT_SCREENSHOT=1 pnpm test:e2e` also updates `docs/screenshots/m3-docked-chat.png`. The default mock can complete all six guided flows and CSV mapping offline. Vitest also scripts provider responses per async test context using `withMockScript`, including errors and multi-round tool sequences.
 
 To run the six walkthroughs plus CSV against real DeepSeek:
 
