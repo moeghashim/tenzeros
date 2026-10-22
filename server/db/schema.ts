@@ -304,7 +304,9 @@ export const imports = sqliteTable('imports', {
   workspaceId: workspaceId(),
   userId: userId(),
   type: text('type').notNull(),
-  status: text('status', { enum: ['Pending', 'Mapping', 'Importing', 'Completed', 'Failed'] })
+  status: text('status', {
+    enum: ['Pending', 'Mapping', 'Importing', 'Running', 'Completed', 'Failed'],
+  })
     .notNull()
     .default('Pending'),
   filename: text('filename'),

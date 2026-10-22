@@ -16,7 +16,17 @@ export function authSession(event: H3Event) {
       statusCode: 503,
       statusMessage: 'Set NUXT_SESSION_SECRET to a unique secret of at least 32 characters.',
     })
-  return useSession<{ userId: string }>(event, {
+  return useSession<{
+    userId: string
+    googleOAuth?: {
+      state: string
+      verifier: string
+      workspaceKey: string
+      workspaceId: string
+      redirectUri: string
+      expiresAt: number
+    }
+  }>(event, {
     name: 'tenzeros-session',
     password,
     maxAge: 60 * 60 * 24 * 7,
