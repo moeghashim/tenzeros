@@ -30,7 +30,7 @@ export function isPublicAddress(address: string) {
 export function stripHtml(html: string) {
   // A parser keeps truncated script/style contents out of the text, even when
   // their closing tags lie beyond the response byte cap.
-  const stack: { excluded: boolean; title: boolean }[] = []
+  const stack: { name: string; excluded: boolean; title: boolean }[] = []
   const metadata = new Map<string, string>()
   let title = '',
     body = ''
@@ -44,8 +44,9 @@ export function stripHtml(html: string) {
         attributes['aria-hidden'] === 'true' ||
         /(?:display\s*:\s*none|visibility\s*:\s*hidden)/i.test(attributes.style ?? '')
       stack.push({
+        name,
         excluded: Boolean(parent?.excluded || hidden || excludedTags.has(name)),
-        title: name === 'title',
+        title: name === 'title' && (!parent || parent.name === 'head'),
       })
       if (name === 'meta') {
         const key = (attributes.name || attributes.property || '').toLowerCase()

@@ -44,6 +44,13 @@ describe('homepage fetch safety', () => {
       'Title: Acme & Co\ndescription: Tools for teams & businesses\nog:title: Acme CRM\nog:description: Grow "together"\nog:site_name: Acme\nVisible company text',
     )
   })
+  it('keeps decorative SVG titles out of the document title and visible text', () => {
+    expect(
+      stripHtml(
+        '<head><title>Acme</title></head><body><svg><title>Menu icon</title></svg><p>Company copy</p></body>',
+      ),
+    ).toBe('Title: Acme\nCompany copy')
+  })
   it('reserves the text budget for visible copy, ignoring JSON, hidden content, and truncated scripts', () => {
     const html = `<script type="application/ld+json">${'JSON noise'.repeat(2000)}</script>
       <template>Template noise</template><div hidden>Hidden text</div>
