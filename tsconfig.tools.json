@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "types": [
+      "node"
+    ]
+  },
+  "include": [
+    "scripts/**/*.ts",
+    "tests/**/*.ts",
+    "drizzle.config.ts",
+    "vitest.config.ts",
+    ".nuxt/types/nitro.d.ts",
+    ".nuxt/types/nitro-nuxt.d.ts"
+  ],
+  "extends": "./.nuxt/tsconfig.server.json"
+}
