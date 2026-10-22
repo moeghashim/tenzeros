@@ -18,7 +18,15 @@ describe('context refresh coalescing', () => {
 
   it('serializes overlapping events and fetches their final state after the in-flight request', async () => {
     let finish!: () => void
-    const refresh = vi.fn().mockImplementationOnce(() => new Promise<void>(resolve => { finish = resolve })).mockResolvedValue(undefined)
+    const refresh = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            finish = resolve
+          }),
+      )
+      .mockResolvedValue(undefined)
     const queue = createCoalescedRefresh(refresh)
     const first = queue.schedule()
     await vi.advanceTimersByTimeAsync(100)
@@ -35,7 +43,12 @@ describe('context refresh coalescing', () => {
 
   it('cancels queued work on unmount, including events received during a request', async () => {
     let finish!: () => void
-    const refresh = vi.fn(() => new Promise<void>(resolve => { finish = resolve }))
+    const refresh = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve
+        }),
+    )
     const queue = createCoalescedRefresh(refresh)
     const first = queue.schedule()
     await vi.advanceTimersByTimeAsync(100)

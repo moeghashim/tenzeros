@@ -23,12 +23,12 @@ The optional seed is idempotent. Sign in at `/login` with **Demo User** and **de
 
 ## Environment
 
-| Variable | Purpose |
-| --- | --- |
-| `DEEPSEEK_API_KEY` | Real DeepSeek key; only read on the server. Missing keys produce a clear context-generation error. |
-| `DEEPSEEK_BASE_URL` | Defaults to `https://api.deepseek.com`. |
-| `DEEPSEEK_MODEL` | Defaults to `deepseek-chat`. |
-| `LLM_MOCK` | `1` enables deterministic text, JSON, and tool-call responses without LLM network requests. Default `0`. Homepage fetching still runs, with its safety limits. |
+| Variable              | Purpose                                                                                                                                                                        |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `DEEPSEEK_API_KEY`    | Real DeepSeek key; only read on the server. Missing keys produce a clear context-generation error.                                                                             |
+| `DEEPSEEK_BASE_URL`   | Defaults to `https://api.deepseek.com`.                                                                                                                                        |
+| `DEEPSEEK_MODEL`      | Defaults to `deepseek-chat`.                                                                                                                                                   |
+| `LLM_MOCK`            | `1` enables deterministic text, JSON, and tool-call responses without LLM network requests. Default `0`. Homepage fetching still runs, with its safety limits.                 |
 | `NUXT_SESSION_SECRET` | At least 32 characters. `.env.example` includes a development-only default; replace it with `openssl rand -hex 32` for production. Production rejects the development default. |
 
 Nuxt reads `.env` during development. The LLM adapter resolves `DEEPSEEK_*` and `LLM_MOCK` into a server-only runtime-config snapshot, so secrets are not baked into a build or exposed through `runtimeConfig.public`. Nuxt's `NUXT_DEEPSEEK_*` overrides also work; the unprefixed names take precedence.

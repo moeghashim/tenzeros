@@ -1,23 +1,51 @@
 import { afterEach, describe, it, expect } from 'vitest'
 import { eq } from 'drizzle-orm'
 import { createAccount, workspaceForUser } from '../server/utils/accounts'
-import { memberships, subscriptions, users, workspaces, onboardingTaskCompletions } from '../server/db/schema'
+import {
+  memberships,
+  subscriptions,
+  users,
+  workspaces,
+  onboardingTaskCompletions,
+} from '../server/db/schema'
 import { accountInput, testDatabase } from './database'
 const db = testDatabase()
-afterEach(() => { db.delete(workspaces).run(); db.delete(users).run() })
+afterEach(() => {
+  db.delete(workspaces).run()
+  db.delete(users).run()
+})
 describe('signup transaction and schema', () => {
   it('creates the user, slugged workspace, active admin membership, and 14-day trial with 2000 credits', () => {
     const now = new Date('2026-10-22T00:00:00Z')
     const { user, workspace } = createAccount(db, accountInput, now)
     expect(user.email).toBe(accountInput.email)
-    expect(workspace).toMatchObject({ key: 'acme-sales', domain: 'example.com', trialEndsAt: '2026-11-05T00:00:00.000Z' })
-    expect(db.select().from(memberships).get()).toMatchObject({ workspaceId: workspace.id, userId: user.id, role: 'admin', status: 'active' })
-    expect(db.select().from(subscriptions).get()).toMatchObject({ workspaceId: workspace.id, status: 'trialing', topupCreditsRemaining: 2000, monthlyCreditsRemaining: 0 })
+    expect(workspace).toMatchObject({
+      key: 'acme-sales',
+      domain: 'example.com',
+      trialEndsAt: '2026-11-05T00:00:00.000Z',
+    })
+    expect(db.select().from(memberships).get()).toMatchObject({
+      workspaceId: workspace.id,
+      userId: user.id,
+      role: 'admin',
+      status: 'active',
+    })
+    expect(db.select().from(subscriptions).get()).toMatchObject({
+      workspaceId: workspace.id,
+      status: 'trialing',
+      topupCreditsRemaining: 2000,
+      monthlyCreditsRemaining: 0,
+    })
   })
   it('makes duplicate workspace names unique and reserves application routes', () => {
     createAccount(db, accountInput)
-    expect(createAccount(db, { ...accountInput, email: 'b@example.test' }).workspace.key).toBe('acme-sales-2')
-    expect(createAccount(db, { ...accountInput, email: 'c@example.test', workspaceName: 'Login' }).workspace.key).toBe('login-workspace')
+    expect(createAccount(db, { ...accountInput, email: 'b@example.test' }).workspace.key).toBe(
+      'acme-sales-2',
+    )
+    expect(
+      createAccount(db, { ...accountInput, email: 'c@example.test', workspaceName: 'Login' })
+        .workspace.key,
+    ).toBe('login-workspace')
   })
   it('normalizes email and rejects duplicate accounts without partial rows', () => {
     createAccount(db, { ...accountInput, email: ' ALEX@EXAMPLE.TEST ' })
@@ -35,8 +63,15 @@ describe('signup transaction and schema', () => {
   })
   it('prevents duplicate workspace-scoped completion rewards despite nullable userId', () => {
     const { workspace } = createAccount(db, accountInput)
-    db.insert(onboardingTaskCompletions).values({ workspaceId: workspace.id, taskKey: 'import_data' }).run()
-    expect(() => db.insert(onboardingTaskCompletions).values({ workspaceId: workspace.id, taskKey: 'import_data' }).run()).toThrow()
+    db.insert(onboardingTaskCompletions)
+      .values({ workspaceId: workspace.id, taskKey: 'import_data' })
+      .run()
+    expect(() =>
+      db
+        .insert(onboardingTaskCompletions)
+        .values({ workspaceId: workspace.id, taskKey: 'import_data' })
+        .run(),
+    ).toThrow()
   })
   it('applies migrations idempotently and enforces foreign keys', () => {
     expect(db.$client.pragma('foreign_keys', { simple: true })).toBe(1)

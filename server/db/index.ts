@@ -18,4 +18,6 @@ export function migrateDatabase(db: AppDatabase) {
   migrate(db, { migrationsFolder: resolve('server/db/migrations') })
 }
 let database: AppDatabase | undefined
-export function getDb() { return database ??= openDatabase() }
+export function getDb() {
+  return (database ??= openDatabase())
+}

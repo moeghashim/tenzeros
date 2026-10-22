@@ -9,17 +9,18 @@ Every LLM call inside the app goes through **DeepSeek**.
 
 ## 0. Sources of truth
 
-| File | What |
-|---|---|
-| `research/zero-onboarding/SPEC-onboarding.md` | Evidence-backed spec: component tree, verbatim copy, task and flow catalogue, credit rules, API, realtime, AI control protocol |
-| `research/zero-onboarding/screenshot-onboarding.png` | Reference screenshot |
-| `research/zero-onboarding/design-tokens.css` | Observed design tokens (colours, radii, shadows, type scale, easings) |
-| `research/zero-onboarding/onboarding-page.reference.css` | Original scoped page CSS (minified), for reference |
+| File                                                     | What                                                                                                                           |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `research/zero-onboarding/SPEC-onboarding.md`            | Evidence-backed spec: component tree, verbatim copy, task and flow catalogue, credit rules, API, realtime, AI control protocol |
+| `research/zero-onboarding/screenshot-onboarding.png`     | Reference screenshot                                                                                                           |
+| `research/zero-onboarding/design-tokens.css`             | Observed design tokens (colours, radii, shadows, type scale, easings)                                                          |
+| `research/zero-onboarding/onboarding-page.reference.css` | Original scoped page CSS (minified), for reference                                                                             |
 
 `research/` is **gitignored** (raw reverse-engineering material, public repo). It exists only in the main checkout at
 `/Users/moeghashim/tenzeros/research/`. Agents read it from that absolute path.
 
 **Clean-room rules.**
+
 - Do not copy Zero source code, logos, the FT Polar font or brand assets.
 - Re-implement the behaviour and layout from the spec.
 - The product name is **Tenzeros**.
@@ -45,22 +46,23 @@ Every LLM call inside the app goes through **DeepSeek**.
 
 ## 2. Data model (minimum)
 
-| Table | Key columns |
-|---|---|
-| `users` | id, email, name, avatarColor |
-| `workspaces` | id, key (url slug), name, domain, settings json, trialEndsAt, onboardingStartedAt, onboardingCompletedAt, onboardingSkippedAt |
-| `memberships` | id, workspaceId, userId, role (`admin`\|`member`), invitedById, inviteEmail, status (`active`\|`invited`) |
-| `subscriptions` | id, workspaceId, status (`trialing`), monthlyCreditsRemaining, topupCreditsRemaining (starts at 2000) |
-| `onboardingTaskCompletions` | id, workspaceId, userId (null for workspace-level tasks), taskKey, creditsAwarded, completedAt |
-| `onboardingFlowStatuses` | id, workspaceId, userId, flowKey, status (`not_started`\|`in_progress`\|`completed`), chatId |
-| `aiContexts` | id, workspaceId, name, content (markdown), type (`prompt`). Seeded by AI at sign-up. |
-| `mailboxes`, `calendars`, `notetakers`, `linkedinAccounts`, `integrations` | rows created by the connect flows (simulated in v1) |
-| `pipelines`, `pipelineStages`, `lists`, `listEntries`, `companies`, `contacts`, `deals`, `agents`, `sequences`, `sequenceSteps`, `writingStyles`, `imports` | targets that the guided flows and migration write into |
-| `chats`, `chatMessages` | chat id, workspaceId, userId, flowKey?, title; messages hold role, content, toolCalls json, toolCallId |
+| Table                                                                                                                                                       | Key columns                                                                                                                   |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `users`                                                                                                                                                     | id, email, name, avatarColor                                                                                                  |
+| `workspaces`                                                                                                                                                | id, key (url slug), name, domain, settings json, trialEndsAt, onboardingStartedAt, onboardingCompletedAt, onboardingSkippedAt |
+| `memberships`                                                                                                                                               | id, workspaceId, userId, role (`admin`\|`member`), invitedById, inviteEmail, status (`active`\|`invited`)                     |
+| `subscriptions`                                                                                                                                             | id, workspaceId, status (`trialing`), monthlyCreditsRemaining, topupCreditsRemaining (starts at 2000)                         |
+| `onboardingTaskCompletions`                                                                                                                                 | id, workspaceId, userId (null for workspace-level tasks), taskKey, creditsAwarded, completedAt                                |
+| `onboardingFlowStatuses`                                                                                                                                    | id, workspaceId, userId, flowKey, status (`not_started`\|`in_progress`\|`completed`), chatId                                  |
+| `aiContexts`                                                                                                                                                | id, workspaceId, name, content (markdown), type (`prompt`). Seeded by AI at sign-up.                                          |
+| `mailboxes`, `calendars`, `notetakers`, `linkedinAccounts`, `integrations`                                                                                  | rows created by the connect flows (simulated in v1)                                                                           |
+| `pipelines`, `pipelineStages`, `lists`, `listEntries`, `companies`, `contacts`, `deals`, `agents`, `sequences`, `sequenceSteps`, `writingStyles`, `imports` | targets that the guided flows and migration write into                                                                        |
+| `chats`, `chatMessages`                                                                                                                                     | chat id, workspaceId, userId, flowKey?, title; messages hold role, content, toolCalls json, toolCallId                        |
 
 ## 3. Features and acceptance criteria
 
 ### 3.1 App shell
+
 - A sidebar matching the spec and screenshot:
   - workspace switcher and collapse button;
   - Search ⌘K (opens an empty command palette stub);
@@ -73,6 +75,7 @@ Every LLM call inside the app goes through **DeepSeek**.
 - "Get started" shows a progress ring and lets the user dismiss onboarding (spec: the sidebar "Dismiss" flow).
 
 ### 3.2 Sign-up and workspace bootstrap (AI)
+
 - `/signup` collects name, email, workspace name and company domain. It creates the user, the workspace (slug from the name), an admin membership and a trialing subscription (14 days, 2000 credits), then redirects to `/:workspace/onboarding`.
 - **DeepSeek job:** after sign-up the server fetches the company homepage text (timeout 8s; fail-soft) and asks DeepSeek to write four `aiContexts`: **Company overview**, **Ideal Customer Profile (ICP)**, **Sales motion** and **Example customers**.
   - Each is 2–4 short paragraphs and must hedge where it is unsure, matching the style of the observed outputs.
@@ -80,6 +83,7 @@ Every LLM call inside the app goes through **DeepSeek**.
 - The contexts are viewable and editable at `/:workspace/settings/workspace/context`. Every AI prompt below includes them as grounding.
 
 ### 3.3 Onboarding page `/:workspace/onboarding` (pixel and behaviour parity with spec §1–§2)
+
 - The header copy, progress bar with credit badge and milestones, and bento grid layout are exactly as in the spec and screenshot.
 - **Six task cards**, keys from the spec: `connect_gmail`, `connect_notetaker`, `install_extension` (LinkedIn), `create_automation` (Enable agents), `invite_colleague`, `import_data`.
   - Each has a 25-credit reward chip, the reward rules from the spec (per-user vs workspace, admin-only visibility) and the completed state with a checkmark.
@@ -100,6 +104,7 @@ Every LLM call inside the app goes through **DeepSeek**.
 - **Completing all tasks** shows the "Complete onboarding" state from the spec and sets `onboardingCompletedAt`.
 
 ### 3.4 Guided setup (AI, DeepSeek)
+
 - **Gallery:** a carousel with prev/next buttons that appear only when the track overflows. It has six flows: `pipeline-and-lists`, `activate-agents`, `existing-customers`, `target-account-list`, `start-outreach` and `personalize-emails` (keys and copy per spec §1.4; non-enabled flows are out of scope).
   - The last two are locked until a mailbox exists (lock icon + "Connect Gmail" CTA, as in the spec).
   - Status badges come from `GET /api/onboarding/flows/statuses` → `{statuses:{[flowKey]:status}, chatIds:{[flowKey]:chatId}}`.
@@ -121,6 +126,7 @@ Every LLM call inside the app goes through **DeepSeek**.
   - If `DEEPSEEK_API_KEY` is missing, the flows show a clear configuration message instead of crashing.
 
 ### 3.5 CSV import chat (AI)
+
 - The first assistant message is verbatim from the spec, followed by an upload block.
 - The user uploads a CSV (≤ 5 MB, parsed server-side with papaparse).
 - DeepSeek proposes a column → field mapping for contacts, companies and deals. It sees the headers plus the first 5 rows only, never the full file.
@@ -128,12 +134,12 @@ Every LLM call inside the app goes through **DeepSeek**.
 
 ## 4. Milestones (one PR each, stacked on `main`)
 
-| # | Branch | Scope | Done when |
-|---|---|---|---|
-| M1 | `m1-foundation` | Nuxt scaffold, tokens and fonts, app shell and sidebar, Drizzle schema and migrations, session and sign-up, SSE hub, `llm.ts` + AI context generation, seed script, Vitest set up | `pnpm dev` runs; sign-up creates a workspace and the 4 AI contexts appear; `pnpm typecheck && pnpm test` pass |
-| M2 | `m2-onboarding-page` | §3.3 in full except the AI chat: cards, progress, credits, completions, SSE updates, confetti, connect modals (demo), agents catalogue, invites, demo CRM imports, complete-onboarding | Page matches the screenshot; every task can be completed and credits update live; tests pass |
-| M3 | `m3-ai-flows` | Chat engine (persisted, streaming, tool loop), docked chat panel, `present_onboarding_control` renderer, 6 guided flows + domain tools, CSV import chat, celebration | Each flow can be run end-to-end against real DeepSeek and against `LLM_MOCK`; tests pass |
-| M4 | `m4-hardening` | Playwright e2e (sign-up → complete all tasks with the LLM mocked), a11y pass, error states, README (setup, env, DeepSeek) | `pnpm test:e2e` is green; README is accurate |
+| #   | Branch               | Scope                                                                                                                                                                                  | Done when                                                                                                     |
+| --- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| M1  | `m1-foundation`      | Nuxt scaffold, tokens and fonts, app shell and sidebar, Drizzle schema and migrations, session and sign-up, SSE hub, `llm.ts` + AI context generation, seed script, Vitest set up      | `pnpm dev` runs; sign-up creates a workspace and the 4 AI contexts appear; `pnpm typecheck && pnpm test` pass |
+| M2  | `m2-onboarding-page` | §3.3 in full except the AI chat: cards, progress, credits, completions, SSE updates, confetti, connect modals (demo), agents catalogue, invites, demo CRM imports, complete-onboarding | Page matches the screenshot; every task can be completed and credits update live; tests pass                  |
+| M3  | `m3-ai-flows`        | Chat engine (persisted, streaming, tool loop), docked chat panel, `present_onboarding_control` renderer, 6 guided flows + domain tools, CSV import chat, celebration                   | Each flow can be run end-to-end against real DeepSeek and against `LLM_MOCK`; tests pass                      |
+| M4  | `m4-hardening`       | Playwright e2e (sign-up → complete all tasks with the LLM mocked), a11y pass, error states, README (setup, env, DeepSeek)                                                              | `pnpm test:e2e` is green; README is accurate                                                                  |
 
 ## 5. Process
 
@@ -143,6 +149,7 @@ Every LLM call inside the app goes through **DeepSeek**.
 4. Opus 5.5 signs off and merges, then the next milestone starts from the updated `main`.
 
 ## 6. Non-goals (v1)
+
 - Real LinkedIn, notetaker, HubSpot, Attio, Affinity or Pipedrive integrations.
 - Billing.
 - Email sending.
