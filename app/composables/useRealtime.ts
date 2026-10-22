@@ -31,7 +31,7 @@ export function useRealtime(subscriber: Subscriber = {}) {
       state.status.value = 'connected'
       for (const s of state.subscribers) s.onConnected?.()
     })
-    source.onmessage = (message) => {
+    const receive = (message: MessageEvent) => {
       try {
         const event = JSON.parse(message.data) as RealtimeEvent
         for (const s of state.subscribers) s.onEvent?.(event)
@@ -39,6 +39,8 @@ export function useRealtime(subscriber: Subscriber = {}) {
         /* Ignore malformed events. */
       }
     }
+    source.onmessage = receive
+    source.addEventListener('onboardingFlowStatusChanged', receive as EventListener)
     source.onerror = () => {
       state.status.value = 'offline'
     }

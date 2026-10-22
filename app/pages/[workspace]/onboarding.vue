@@ -29,6 +29,21 @@ const toast = ref(''),
   finishError = ref(''),
   finishing = ref(false)
 let toastTimer: ReturnType<typeof setTimeout> | undefined
+async function migrate(source: string) {
+  if (source !== 'CSV') {
+    migration.value = source
+    return
+  }
+  try {
+    const result = await $fetch('/api/onboarding/flows/start', {
+      method: 'POST',
+      body: { workspaceId: data.value!.workspace.id, flowKey: 'csv-import', mode: 'restart' },
+    })
+    useChatSurface().openDocked(result.data.chatId)
+  } catch {
+    showToast('Could not start the import chat. Please retry.')
+  }
+}
 function showToast(message: string) {
   toast.value = message
   clearTimeout(toastTimer)
@@ -205,7 +220,7 @@ onUnmounted(() => clearTimeout(toastTimer))
         :completed="completed('import_data')"
         :credits="credits('import_data')"
         :source="data.imports[0]?.type"
-        @select="(source) => (migration = source)"
+        @select="migrate"
       />
     </div>
     <div v-if="allCompleted" class="completion-footer">

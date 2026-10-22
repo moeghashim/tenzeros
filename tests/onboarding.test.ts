@@ -273,7 +273,7 @@ describe('shared visibility, progress and ordering', () => {
   it('orders in progress, unstarted, completed with stable catalogue ties', () => {
     const flows = orderedFlows({
       'pipeline-and-lists': 'completed',
-      'existing-customers': 'in_progress',
+      'existing-customers': 'active',
     })
     expect(flows[0]?.key).toBe('existing-customers')
     expect(flows[1]?.key).toBe('activate-agents')

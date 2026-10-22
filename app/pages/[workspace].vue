@@ -73,6 +73,7 @@ useRealtime({
       @dismissed="reconcile"
     />
     <main id="main" tabindex="-1"><NuxtPage /></main>
+    <ChatDocked :workspace-key="key" :workspace-id="data.workspace.id" />
   </div>
 </template>
 <style scoped>

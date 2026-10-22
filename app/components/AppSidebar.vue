@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const chatSurface = useChatSurface()
 import {
   IconLayoutSidebarLeftCollapse,
   IconLayoutSidebarLeftExpand,
@@ -270,9 +271,9 @@ onUnmounted(() => {
         <div class="group-label">Chats <IconChevronDown :size="12" /></div>
         <p v-if="!chats.length" class="empty">No chats yet</p>
         <nav v-else>
-          <NuxtLink v-for="chat in chats" :key="chat.id" :to="link(`chats/${chat.id}`)"
-            ><IconMessageCircle :size="16" /><span>{{ chat.title }}</span></NuxtLink
-          >
+          <button v-for="chat in chats" :key="chat.id" @click="chatSurface.openDocked(chat.id)">
+            <IconMessageCircle :size="16" /><span>{{ chat.title }}</span>
+          </button>
         </nav>
       </section>
       <footer>
@@ -420,11 +421,17 @@ kbd {
   font-size: 11px;
   background: var(--color-bgSecondary);
 }
+nav button {
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
 nav {
   display: grid;
   gap: 2px;
 }
 nav a,
+nav button,
 .footer-controls a {
   text-decoration: none;
   display: flex;
@@ -436,7 +443,8 @@ nav a,
   color: var(--color-textSecondary);
   white-space: nowrap;
 }
-nav a span {
+nav a span,
+nav button span {
   overflow: hidden;
   text-overflow: ellipsis;
 }

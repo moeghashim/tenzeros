@@ -13,7 +13,7 @@ useHead({ title: 'Records & Lists — Tenzeros' })
       <li v-for="company in data?.companies" :key="company.id">
         <strong>{{ company.name }}</strong
         ><span>{{ company.industry }}</span
-        ><small v-if="company.isExample">Demo</small>
+        ><small v-if="company.isExample">Example</small>
       </li>
     </ul>
     <h2>Contacts</h2>
@@ -21,7 +21,7 @@ useHead({ title: 'Records & Lists — Tenzeros' })
       <li v-for="contact in data?.contacts" :key="contact.id">
         <strong>{{ contact.name }}</strong
         ><span>{{ contact.email }}</span
-        ><small v-if="contact.isExample">Demo</small>
+        ><small v-if="contact.isExample">Example</small>
       </li>
     </ul>
   </section>

@@ -25,7 +25,7 @@ The optional seed is idempotent. Sign in at `/login` with **Demo User** and **de
 
 | Variable              | Purpose                                                                                                                                                                        |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `DEEPSEEK_API_KEY`    | Real DeepSeek key; only read on the server. Missing keys produce a clear context-generation error.                                                                             |
+| `DEEPSEEK_API_KEY`    | Real DeepSeek key; only read on the server. Missing keys produce clear, retryable context/chat errors.                                                                         |
 | `DEEPSEEK_BASE_URL`   | Defaults to `https://api.deepseek.com`.                                                                                                                                        |
 | `DEEPSEEK_MODEL`      | Defaults to `deepseek-chat`.                                                                                                                                                   |
 | `LLM_MOCK`            | `1` enables deterministic text, JSON, and tool-call responses without LLM network requests. Default `0`. Homepage fetching still runs, with its safety limits.                 |
@@ -67,10 +67,10 @@ Open a fresh workspace at `/signup`, or sign in and visit `/:workspace/onboardin
 
 - The six task cards connect Gmail/Calendar, a notetaker, and LinkedIn; enable an agent; invite teammates; and migrate demo CRM data. Workspace tasks are visible only to admins until workspace onboarding is completed or dismissed.
 - Each **Simulate connection** flow is labelled **Demo**. Gmail creates both mailbox and calendar rows. The notetaker picker offers all eight providers. Invitations create pending memberships without sending email. CRM imports create 10 fictional companies and 10 contacts, labelled `(Demo)`, with `isExample: true` and `attributes.source: 'demo'`. View them under **Records & Lists**.
-- The six ready-made agents are seeded on the first admin visit to **Agents**. Toggles persist, but execution is deferred to M3. Enabling the first agent completes the onboarding task.
+- The six ready-made agents are seeded on the first admin visit to **Agents**. Toggles persist; background agent execution is outside this onboarding milestone. Enabling the first agent completes the onboarding task.
 - `server/utils/onboarding.ts` owns qualifying writes, completion inserts, and credit accounting. Its immediate SQLite transaction uses the existing partial unique indexes for idempotency. A transaction-local event queue publishes SSE **after commit**, so rollback cannot leak a phantom completion. Personal tasks award 25 credits to the first four users per task per workspace; subsequent users and legacy workspaces get zero. Workspace tasks award 25 once. Dismissed tasks cannot earn previously unclaimed credits.
 - The UI reconciles SSE changes without polling. The spring progress bar switches to task counts when any reward is zero. Browser storage remembers started onboarding and celebrated tasks. Completing all visible tasks enables **Complete onboarding**; the server validates completion before persisting timestamps and returning home.
-- Guided setup shows six cards, stable status ordering, mailbox locks, and overflow controls. Unlocked cards show “Guided setup arrives in M3”; CSV opens the M3 placeholder.
+- Guided setup shows six cards, stable status ordering, mailbox locks, and overflow controls. Cards now open the M3 docked chat; CSV opens the import assistant.
 
 ### Optional real Google connection
 
@@ -91,3 +91,40 @@ pnpm test:screenshots
 The script creates a new demo workspace, completes all six tasks through the UI, checks 150 bonus credits, storage persistence, gallery locks, mobile/tablet overflow, and the final redirect. It saves fresh and completed **1200×852** screenshots plus a full-page completed screenshot under `docs/screenshots/`. Use a mock-enabled server to avoid LLM calls. Vitest also covers reward scoping, idempotency, rollback and SSE, authorization, input validation, invitation uniqueness, imports, and mocked Google OAuth.
 
 The UI uses original CSS/SVG illustrations and CC0 Simple Icons where available. Attio, Affinity CRM, and Pipedrive use text/generic symbols because those logos are absent from the pinned icon catalogue; LinkedIn is available in Simple Icons v11. The consent preview is an original illustration. All product naming and the credit glyph are Tenzeros-specific.
+
+## M3 chat and guided setup
+
+Click a guided setup card to open its chat on the right. The assistant speaks first; answer the pinned controls or use the composer for free-text questions. Resume uses the same persisted chat, including unanswered controls. **Start from beginning** creates a new chat and resets the flow status, retaining earlier chats as read-only history. Outreach and writing style require your connected mailbox; the **Simulate connection** option unlocks them for local testing. No email or LinkedIn message is sent, and writing style uses 2–3 pasted samples rather than reading mail.
+
+Pipeline stages and every outreach draft are shown for approval before the exact approved payload is written. Target accounts receive a DeepSeek-generated fit score and rationale. With no company records, the assistant offers up to ten fictional **Example** accounts. The Customers list is curated; automatic list membership and background agent execution are not implemented.
+
+The CSV tile opens **Import your data**. Upload a UTF-8 `.csv` up to 5 MB (up to 100 columns, 20,000 characters per cell), review the proposed mapping, then confirm. DeepSeek receives only headers and the first five rows, alongside workspace context. All rows import in one transaction; formula-like cells are prefixed with an apostrophe for safe text storage. Imported source rows are removed after completion. CSV is supported in M3; Excel is not advertised or accepted. Imports create records rather than deduplicating existing CRM records.
+
+All LLM requests go through `server/utils/llm.ts`. Flow prompts are server-only. Workspace context, records, homepage evidence, samples and CSV data are delimited untrusted JSON. Zod validates tool arguments, workspace ownership is rechecked, and the tool loop stops after eight rounds per turn. Controls, completion, errors and chat history survive reloads. Flow HTTP/SSE status values are `unstarted`, `active`, `completed`; the database retains the existing M1 status enum through an adapter. Chat turns and uploads serialize per chat in the single-process runtime.
+
+### M3 verification
+
+```sh
+pnpm install
+pnpm format:check
+pnpm typecheck
+pnpm test
+# Stop your development server before building (Nuxt protects its build directory).
+pnpm build
+pnpm exec playwright install chromium
+pnpm test:e2e
+```
+
+Playwright starts a mock server on port 3100 with a separate build directory. It verifies the signup/login forms with JavaScript disabled and runs the agents walkthrough through selection, refresh/resume, completion and restart. `CAPTURE_CHAT_SCREENSHOT=1 pnpm test:e2e` also updates `docs/screenshots/m3-docked-chat.png`. Vitest scripts provider responses per async test context using `withMockScript`, including errors and multi-round tool sequences.
+
+To run the six walkthroughs plus CSV against real DeepSeek:
+
+```sh
+LLM_MOCK=0 pnpm dev --host 127.0.0.1 --port 3001
+# In another terminal, with the dev server loading the existing .env:
+VERIFY_BASE_URL=http://127.0.0.1:3001 pnpm verify:real
+```
+
+This creates a new Stripe-domain test workspace, waits for real AI contexts, adds a demo mailbox, answers each control using test fixtures, and verifies completed statuses. It writes local transcripts and the test account identity to `/tmp/tenzeros-m3-real-transcripts.json` and `/tmp/tenzeros-m3-verification-account.json`. `VERIFY_REUSE=1` reuses that test account for another pass. Keep the dev server stable during verification; hot reloads can interrupt provider requests. Real requests consume provider credits. The verification on 2026-10-22 completed all seven flows; transcript excerpts are in the M3 PR.
+
+![Docked chat with a multiple-choice onboarding control](docs/screenshots/m3-docked-chat.png)

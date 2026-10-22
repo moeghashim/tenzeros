@@ -45,8 +45,10 @@ try {
   await expect(page.getByRole('dialog')).toContainText('One quick thing before Google opens')
   await page.keyboard.press('Escape')
   await page.getByRole('button', { name: 'Import from CSV', exact: true }).click()
-  await expect(page.getByRole('dialog')).toContainText('AI import assistant arrives in M3')
-  await page.getByRole('button', { name: 'Got it', exact: true }).click()
+  await expect(page.getByRole('complementary', { name: 'Tenzeros chat' })).toContainText(
+    'Drop your CSV here',
+  )
+  await page.getByRole('button', { name: 'Close chat', exact: true }).click()
   for (const task of ['connect_gmail', 'connect_notetaker', 'install_extension']) {
     await page.locator(`[data-task="${task}"]`).click()
     await expect(page.getByRole('dialog')).toContainText('Demo')

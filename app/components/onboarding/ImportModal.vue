@@ -21,25 +21,16 @@ async function runImport() {
 }
 </script>
 <template>
-  <OnboardingModal
-    :title="source === 'CSV' ? 'Import your data' : `Connect ${source}`"
-    @close="emit('close')"
-  >
-    <p v-if="source === 'CSV'">
-      The AI import assistant arrives in M3. You'll be able to upload your CSV and map it into your
-      workspace.
+  <OnboardingModal :title="`Connect ${source}`" @close="emit('close')">
+    <p class="demo">Demo</p>
+    <p>
+      Explore {{ source }} migration with 10 fictional companies and 10 fictional contacts. Each
+      record is marked as demo data. No external account is connected.
     </p>
-    <template v-else
-      ><p class="demo">Demo</p>
-      <p>
-        Explore {{ source }} migration with 10 fictional companies and 10 fictional contacts. Each
-        record is marked as demo data. No external account is connected.
-      </p></template
-    >
     <p v-if="error" class="error" role="alert">{{ error }}</p>
     <div class="actions">
-      <button @click="emit('close')">{{ source === 'CSV' ? 'Got it' : 'Cancel' }}</button
-      ><button v-if="source !== 'CSV'" class="primary" :disabled="busy" @click="runImport">
+      <button @click="emit('close')">Cancel</button
+      ><button class="primary" :disabled="busy" @click="runImport">
         {{ busy ? 'Importing…' : 'Simulate connection' }}
       </button>
     </div>
