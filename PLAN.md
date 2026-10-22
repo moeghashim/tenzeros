@@ -1,7 +1,7 @@
 # Tenzeros: PLAN
 
-A clean-room rebuild of the "Get started" onboarding experience of Zero (an AI CRM, `app.zero.inc/<workspace>/onboarding`).
-The behaviour was reverse engineered with [REA](https://github.com/morluto/rea).
+A clean-room app inspired by a modern AI CRM onboarding.
+Behavior and layout are documented in local, uncommitted research.
 Every LLM call inside the app goes through **DeepSeek**.
 
 - **Coding agent:** GPT-6-Astra (Codex), one milestone per branch and PR.
@@ -9,22 +9,22 @@ Every LLM call inside the app goes through **DeepSeek**.
 
 ## 0. Sources of truth
 
-| File                                                     | What                                                                                                                           |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `research/zero-onboarding/SPEC-onboarding.md`            | Evidence-backed spec: component tree, verbatim copy, task and flow catalogue, credit rules, API, realtime, AI control protocol |
-| `research/zero-onboarding/screenshot-onboarding.png`     | Reference screenshot                                                                                                           |
-| `research/zero-onboarding/design-tokens.css`             | Observed design tokens (colours, radii, shadows, type scale, easings)                                                          |
-| `research/zero-onboarding/onboarding-page.reference.css` | Original scoped page CSS (minified), for reference                                                                             |
+| File                                                       | What                                                                                                                           |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `research/<local-reference>/SPEC-onboarding.md`            | Evidence-backed spec: component tree, verbatim copy, task and flow catalogue, credit rules, API, realtime, AI control protocol |
+| `research/<local-reference>/screenshot-onboarding.png`     | Reference screenshot                                                                                                           |
+| `research/<local-reference>/design-tokens.css`             | Observed design tokens (colours, radii, shadows, type scale, easings)                                                          |
+| `research/<local-reference>/onboarding-page.reference.css` | Original scoped page CSS (minified), for reference                                                                             |
 
 `research/` is **gitignored** (raw reverse-engineering material, public repo). It exists only in the main checkout at
 `/Users/moeghashim/tenzeros/research/`. Agents read it from that absolute path.
 
 **Clean-room rules.**
 
-- Do not copy Zero source code, logos, the FT Polar font or brand assets.
+- Do not copy proprietary source code, logos, fonts or brand assets.
 - Re-implement the behaviour and layout from the spec.
 - The product name is **Tenzeros**.
-- Use Inter (or Geist) instead of FT Polar.
+- Use Inter (or Geist) for the interface.
 - Icons are Tabler (`@tabler/icons-vue`, MIT). Third-party brand logos (Gmail, LinkedIn, HubSpot…) come from `simple-icons` (CC0).
 
 ## 1. Stack (decided)
