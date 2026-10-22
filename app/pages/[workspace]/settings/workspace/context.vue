@@ -1,7 +1,13 @@
 <script setup lang="ts">
+import { createCoalescedRefresh } from '../../../../utils/coalescedRefresh'
 const route = useRoute()
 const url = computed(() => `/api/workspaces/${encodeURIComponent(String(route.params.workspace))}/contexts`)
 const { data, error, refresh } = await useFetch<import('../../../../../shared/api').WorkspaceContexts>(url)
+const refreshQueue = createCoalescedRefresh(() => refresh({ dedupe: 'defer' }))
+onScopeDispose(refreshQueue.dispose)
+// Keep the initial connection reconciliation: events can arrive between the
+// first snapshot and subscribing. Batch it with any bootstrap events.
+const scheduleRefresh = () => { void refreshQueue.schedule().catch(() => {}) }
 const drafts = reactive<Record<string, string>>({})
 const saving = ref<string | null>(null)
 const message = ref('')
@@ -12,17 +18,17 @@ watch(data, (value, previous) => {
     if (!(row.id in drafts) || drafts[row.id] === old?.content) drafts[row.id] = row.content
   }
 }, { immediate: true })
-const { status } = useRealtime({ onConnected: () => { void refresh() }, onEvent: event => { if (event.workspaceId === data.value?.workspaceId && (event.type === 'custom' || event.targetModel === 'aiContexts')) {
+const { status } = useRealtime({ onConnected: scheduleRefresh, onEvent: event => { if (event.workspaceId === data.value?.workspaceId && (event.type === 'custom' ? event.event === 'contextBootstrapStatus' : event.targetModel === 'aiContexts')) {
   if (event.type !== 'custom' && event.type === 'update') { const row = data.value.contexts.find(c => c.id === event.targetId); if (row && drafts[row.id] === row.content) drafts[row.id] = String(event.data.content) }
-  void refresh()
+  scheduleRefresh()
 } } })
 async function save(id: string) {
   saving.value = id; message.value = ''
-  try { await $fetch(`${url.value}/${id}`, { method: 'PATCH', body: { content: drafts[id] } }); await refresh(); message.value = 'Context saved.' } catch { message.value = 'Could not save context. Please try again.' } finally { saving.value = null }
+  try { await $fetch(`${url.value}/${id}`, { method: 'PATCH', body: { content: drafts[id] } }); await refreshQueue.schedule(); message.value = 'Context saved.' } catch { message.value = 'Could not save context. Please try again.' } finally { saving.value = null }
 }
 async function retry() {
   retrying.value = true
-  try { await $fetch(`${url.value}/retry`, { method: 'POST' }); await refresh() } catch { message.value = 'Could not start generation. Please try again.' } finally { retrying.value = false }
+  try { await $fetch(`${url.value}/retry`, { method: 'POST' }); await refreshQueue.schedule() } catch { message.value = 'Could not start generation. Please try again.' } finally { retrying.value = false }
 }
 useHead({ title: 'AI context — Tenzeros' })
 </script>
@@ -37,8 +43,8 @@ useHead({ title: 'AI context — Tenzeros' })
     <p v-if="status === 'offline'" class="muted connection" role="status">Reconnecting to live updates…</p>
     <p role="status" class="save-status">{{ message }}</p>
     <article v-for="context in data?.contexts" :key="context.id" class="context-card">
-      <h2><label :for="context.id">{{ context.name }}</label></h2>
-      <textarea :id="context.id" v-model="drafts[context.id]" :readonly="!data?.canEdit" rows="9" maxlength="20000" />
+      <h2 :id="`${context.id}-heading`"><label :for="context.id">{{ context.name }}</label></h2>
+      <textarea :id="context.id" v-model="drafts[context.id]" :aria-labelledby="`${context.id}-heading`" :readonly="!data?.canEdit" rows="9" maxlength="20000" />
       <footer><span class="muted">Markdown · AI-generated starting point; verify claims.</span><button v-if="data?.canEdit" :disabled="saving !== null || drafts[context.id] === context.content || !drafts[context.id]?.trim()" @click="save(context.id)">{{ saving === context.id ? 'Saving…' : 'Save changes' }}</button></footer>
     </article>
   </section>

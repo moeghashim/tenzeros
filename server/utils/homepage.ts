@@ -3,16 +3,43 @@ import { isIP } from 'node:net'
 import { request as httpRequest } from 'node:http'
 import { request as httpsRequest } from 'node:https'
 import ipaddr from 'ipaddr.js'
+import { Parser } from 'htmlparser2'
+
+const MAX_HOMEPAGE_BYTES = 1_500_000
+const MAX_TEXT_CHARS = 12_000
+const excludedTags = new Set(['head', 'script', 'style', 'noscript', 'svg', 'template', 'canvas', 'iframe', 'object'])
+const metadataNames = ['description', 'og:title', 'og:description', 'og:site_name']
 
 export function isPublicAddress(address: string) {
   try { return ipaddr.process(address).range() === 'unicast' } catch { return false }
 }
 export function stripHtml(html: string) {
-  return html.replace(/<(script|style|noscript|svg)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, ' ')
-    .replace(/<!--[\s\S]*?-->/g, ' ').replace(/<[^>]*>/g, ' ')
-    .replace(/&(nbsp|amp|quot|apos|lt|gt);/g, (_, name: string) => ({ nbsp: ' ', amp: '&', quot: '"', apos: "'", lt: '<', gt: '>' })[name] ?? ' ')
-    .replace(/&#(x[\da-f]+|\d+);/gi, (_, code: string) => { const point = code[0]?.toLowerCase() === 'x' ? parseInt(code.slice(1), 16) : Number(code); return point > 0 && point <= 0x10ffff ? String.fromCodePoint(point) : ' ' })
-    .replace(/\s+/g, ' ').trim().slice(0, 12000)
+  // A parser keeps truncated script/style contents out of the text, even when
+  // their closing tags lie beyond the response byte cap.
+  const stack: { excluded: boolean; title: boolean }[] = []
+  const metadata = new Map<string, string>()
+  let title = '', body = ''
+  const normalize = (text: string) => text.replace(/\s+/g, ' ').trim()
+  const parser = new Parser({
+    onopentag(name, attributes) {
+      body += ' '
+      const parent = stack.at(-1)
+      const hidden = 'hidden' in attributes || attributes['aria-hidden'] === 'true' || /(?:display\s*:\s*none|visibility\s*:\s*hidden)/i.test(attributes.style ?? '')
+      stack.push({ excluded: Boolean(parent?.excluded || hidden || excludedTags.has(name)), title: name === 'title' })
+      if (name === 'meta') {
+        const key = (attributes.name || attributes.property || '').toLowerCase()
+        if (metadataNames.includes(key) && attributes.content && !metadata.has(key)) metadata.set(key, normalize(attributes.content).slice(0, 500))
+      }
+    },
+    ontext(text) {
+      if (stack.at(-1)?.title) title = (title + text).slice(0, 500)
+      else if (!stack.at(-1)?.excluded) body += text
+    },
+    onclosetag() { stack.pop(); body += ' ' },
+  })
+  parser.end(html)
+  const fields = [title ? `Title: ${normalize(title)}` : '', ...metadataNames.map(name => metadata.has(name) ? `${name}: ${metadata.get(name)}` : '')].filter(Boolean)
+  return [...fields, normalize(body)].filter(Boolean).join('\n').slice(0, MAX_TEXT_CHARS)
 }
 async function fetchPage(url: URL, signal: AbortSignal, redirects = 0): Promise<string> {
   if (!['https:', 'http:'].includes(url.protocol) || url.username || url.password || (url.port && !['80', '443'].includes(url.port))) throw new Error('Unsupported URL')
@@ -35,13 +62,18 @@ async function fetchPage(url: URL, signal: AbortSignal, redirects = 0): Promise<
         response.resume(); reject(new Error('No homepage text')); return
       }
       const chunks: Buffer[] = []; let bytes = 0
+      const finish = () => resolve({ html: Buffer.concat(chunks).toString('utf8') })
       response.on('data', (chunk: Buffer) => {
-        bytes += chunk.length
-        if (bytes > 512000) { response.destroy(new Error('Homepage too large')); return }
-        chunks.push(chunk)
+        const retained = chunk.subarray(0, MAX_HOMEPAGE_BYTES - bytes)
+        chunks.push(retained)
+        bytes += retained.length
+        if (bytes >= MAX_HOMEPAGE_BYTES) {
+          finish()
+          response.destroy()
+        }
       })
       response.on('error', reject)
-      response.on('end', () => resolve({ html: Buffer.concat(chunks).toString('utf8') }))
+      response.on('end', finish)
     })
     request.on('error', reject); request.end()
   })

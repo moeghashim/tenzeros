@@ -9,6 +9,24 @@ describe('homepage fetch safety', () => {
     expect(stripHtml('<style>hidden</style><script>bad()</script><p>Hello &amp; world &#33;</p>')).toBe('Hello & world !')
     expect(stripHtml('a'.repeat(20000))).toHaveLength(12000)
   })
+  it('prepends title and meta/OG fields regardless of attribute order, case, or quoting', () => {
+    const html = `<head><TITLE>Acme &amp; Co</TITLE>
+      <meta content='Tools for teams &amp; businesses' name=description>
+      <meta property="og:title" content="Acme CRM">
+      <META CONTENT="Grow &quot;together&quot;" PROPERTY="og:description">
+      <meta property='og:site_name' content='Acme'>
+      </head><body><p>Visible company text</p></body>`
+    expect(stripHtml(html)).toBe('Title: Acme & Co\ndescription: Tools for teams & businesses\nog:title: Acme CRM\nog:description: Grow "together"\nog:site_name: Acme\nVisible company text')
+  })
+  it('reserves the text budget for visible copy, ignoring JSON, hidden content, and truncated scripts', () => {
+    const html = `<script type="application/ld+json">${'JSON noise'.repeat(2000)}</script>
+      <template>Template noise</template><div hidden>Hidden text</div>
+      <div aria-hidden="true">Decoration</div><p style="display: none">Hidden styling</p>
+      <p>${'Visible copy '.repeat(1200)}</p><script>${'Unclosed script noise'.repeat(1000)}`
+    const text = stripHtml(html)
+    expect(text).toHaveLength(12000)
+    expect(text).toBe('Visible copy '.repeat(1200).slice(0, 12000))
+  })
   it('accepts domains and rejects credentials, ports, paths, and non-web schemes', () => {
     expect(domainSchema.parse('https://Example.com/')).toBe('example.com')
     for (const domain of ['file:///etc/passwd', 'https://a:b@example.com', 'example.com:8080', 'example.com/path']) expect(domainSchema.safeParse(domain).success).toBe(false)

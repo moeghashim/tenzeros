@@ -7,17 +7,23 @@ vi.mock('node:http', () => ({ request: mocks.request }))
 import { fetchHomepageText } from '../server/utils/homepage'
 beforeEach(() => { vi.resetAllMocks(); mocks.lookup.mockResolvedValue([{ address: '1.1.1.1', family: 4 }]) })
 afterEach(() => { vi.useRealTimers() })
-function response(status: number, headers: Record<string, string>, body: string) {
+function response(status: number, headers: Record<string, string>, body: string | string[]) {
+  const destroy = vi.fn()
   mocks.request.mockImplementationOnce((_url, _options, callback) => {
     const request = new EventEmitter() as EventEmitter & { end: () => void }
     request.end = () => {
       const stream = new EventEmitter()
-      Object.assign(stream, { statusCode: status, headers, resume: () => {}, destroy: (error: Error) => stream.emit('error', error) })
+      Object.assign(stream, { statusCode: status, headers, resume: () => {}, destroy })
       callback(stream)
-      stream.emit('data', Buffer.from(body)); stream.emit('end')
+      for (const chunk of typeof body === 'string' ? [body] : body) {
+        stream.emit('data', Buffer.from(chunk))
+        if (destroy.mock.calls.length) return
+      }
+      stream.emit('end')
     }
     return request
   })
+  return destroy
 }
 describe('homepage network boundaries', () => {
   it('pins the connection to the validated DNS address while retaining the URL host', async () => {
@@ -46,8 +52,27 @@ describe('homepage network boundaries', () => {
     expect(await result).toBe('')
     expect(mocks.request).not.toHaveBeenCalled()
   })
-  it('rejects oversized pages before text extraction', async () => {
-    response(200, { 'content-type': 'text/html' }, 'a'.repeat(512001))
-    expect(await fetchHomepageText('large.example')).toBe('')
+  it('uses the capped prefix of a large response and stops reading mid-script', async () => {
+    const destroy = response(200, { 'content-type': 'text/html' }, [
+      '<title>Large company</title><p>Useful company information</p><script>',
+      'private hydration JSON noise'.repeat(60_000),
+      '</script><p>Beyond the cap</p>',
+    ])
+    expect(await fetchHomepageText('large.example')).toBe('Title: Large company\nUseful company information')
+    expect(destroy).toHaveBeenCalledOnce()
+    expect(destroy).toHaveBeenCalledWith()
+  })
+  it('follows a redirect chain with relative and absolute locations and validates each host', async () => {
+    response(301, { location: '/home' }, '')
+    response(302, { location: 'https://www.public.example/home' }, '')
+    response(200, { 'content-type': 'text/html' }, '<p>Company homepage after redirects</p>')
+    expect(await fetchHomepageText('public.example')).toBe('Company homepage after redirects')
+    expect(mocks.request.mock.calls.map(([url]) => url.href)).toEqual(['https://public.example/', 'https://public.example/home', 'https://www.public.example/home'])
+    expect(mocks.lookup.mock.calls.map(([host]) => host)).toEqual(['public.example', 'public.example', 'www.public.example'])
+  })
+  it('bounds redirect loops', async () => {
+    for (let i = 0; i < 4; i++) response(302, { location: '/' }, '')
+    expect(await fetchHomepageText('public.example')).toBe('')
+    expect(mocks.request).toHaveBeenCalledTimes(4)
   })
 })
