@@ -21,7 +21,7 @@ The seed creates **Demo User / demo@tenzeros.local** for `/login`, four fictiona
 
 ## Environment
 
-All secrets live in `.env` or the host's environment, never in client runtime config. Nuxt loads `.env` in development; `pnpm start` loads it if present. Host environment values take precedence over the file.
+All secrets live in `.env` or the host's environment, never in client runtime config. Nuxt loads `.env` in development; `pnpm start`, `pnpm db:migrate` and `pnpm db:seed` load it if present. Host environment values take precedence over the file.
 
 | Variable                                   | Purpose                                                                                                                                                 |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
