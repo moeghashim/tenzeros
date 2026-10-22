@@ -1,5 +1,8 @@
 <script setup lang="ts">
 definePageMeta({ middleware: 'auth' })
+import { createCoalescedRefresh } from '../utils/coalescedRefresh'
+import { isFinished } from '#shared/onboarding'
+const onboarding = await useOnboarding()
 const route = useRoute()
 const requestFetch = useRequestFetch()
 const { data: account } = await useAsyncData('account', () => requestFetch('/api/auth/me'))
@@ -12,17 +15,45 @@ if (error.value)
     statusCode: error.value.statusCode || 404,
     statusMessage: 'Workspace not found',
   })
+const refreshQueue = createCoalescedRefresh(async () => {
+  await Promise.all([refresh(), onboarding.refresh()])
+})
+onUnmounted(() => refreshQueue.dispose())
+const reconcile = () => {
+  void refreshQueue.schedule().catch(() => {})
+}
+const showOnboarding = computed(() => {
+  const value = onboarding.data.value
+  return Boolean(
+    value &&
+    ((!isFinished(value.membership) && value.membership.onboardingStartedAt) ||
+      (value.role === 'admin' &&
+        !isFinished(value.workspace) &&
+        value.workspace.onboardingStartedAt)),
+  )
+})
 useRealtime({
   onConnected: () => {
-    void refresh()
+    reconcile()
   },
   onEvent: (event) => {
     if (
       event.workspaceId === data.value?.workspace.id &&
       (event.type === 'custom' ||
-        ['chats', 'subscriptions', 'workspaces', 'memberships'].includes(event.targetModel))
+        [
+          'chats',
+          'subscriptions',
+          'workspaces',
+          'memberships',
+          'onboardingTaskCompletions',
+          'mailboxes',
+          'calendars',
+          'notetakers',
+          'linkedinAccounts',
+          'imports',
+        ].includes(event.targetModel))
     )
-      void refresh()
+      reconcile()
   },
 })
 </script>
@@ -33,8 +64,13 @@ useRealtime({
       :workspace="data.workspace"
       :workspaces="account.workspaces.map((w) => w.workspace)"
       :chats="data.chats"
-      :dismissed="Boolean(data.membership.onboardingSkippedAt)"
-      @dismissed="refresh()"
+      :show-onboarding="showOnboarding"
+      :progress="
+        onboarding.tasks.value.length
+          ? onboarding.completions.value.length / onboarding.tasks.value.length
+          : 0
+      "
+      @dismissed="reconcile"
     />
     <main id="main" tabindex="-1"><NuxtPage /></main>
   </div>

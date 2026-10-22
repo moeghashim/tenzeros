@@ -20,6 +20,7 @@ import {
   IconChevronDown,
   IconLogout,
   IconX,
+  IconDots,
 } from '@tabler/icons-vue'
 const props = defineProps<{
   workspace: {
@@ -31,12 +32,18 @@ const props = defineProps<{
   }
   workspaces: { id: string; key: string; name: string }[]
   chats: { id: string; title: string }[]
-  dismissed: boolean
+  showOnboarding: boolean
+  progress: number
 }>()
 const emit = defineEmits<{ dismissed: [] }>()
+const dismissMenu = ref(false)
 const dismissDialog = ref<HTMLDialogElement>()
 const dismissing = ref(false)
 const dismissError = ref('')
+function openDismiss() {
+  dismissMenu.value = false
+  dismissDialog.value?.showModal()
+}
 async function dismissOnboarding() {
   dismissing.value = true
   dismissError.value = ''
@@ -55,7 +62,7 @@ async function dismissOnboarding() {
   }
 }
 const collapsed = ref(false)
-const width = ref(220)
+const width = ref(226)
 const palette = ref<HTMLDialogElement>()
 const query = ref('')
 const now = ref(Date.now())
@@ -198,20 +205,47 @@ onUnmounted(() => {
         ><kbd v-if="!collapsed">⌘K</kbd>
       </button>
       <nav aria-label="Main">
-        <div v-if="!dismissed" class="onboarding-nav">
+        <div v-if="showOnboarding" class="onboarding-nav">
           <NuxtLink :to="link('onboarding')" title="Get started"
-            ><span class="progress-ring" aria-hidden="true" /><span v-if="!collapsed"
-              >Get started</span
+            ><svg class="progress-ring" viewBox="0 0 16 16" aria-hidden="true">
+              <circle
+                cx="8"
+                cy="8"
+                r="6"
+                :fill="progress >= 1 ? 'currentColor' : 'none'"
+                stroke="#ddd"
+                stroke-width="2"
+              />
+              <circle
+                cx="8"
+                cy="8"
+                r="6"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                :stroke-dasharray="`${progress * 37.7} 37.7`"
+                transform="rotate(-90 8 8)"
+              />
+              <path
+                v-if="progress >= 1"
+                d="m5 8 2 2 4-4"
+                fill="none"
+                stroke="white"
+                stroke-width="1.5"
+              /></svg
+            ><span v-if="!collapsed">Get started</span
             ><span v-else class="sr-only">Get started</span></NuxtLink
           ><button
             v-if="!collapsed"
             class="icon-button dismiss-button"
-            title="Dismiss onboarding"
-            aria-label="Dismiss onboarding"
-            @click="dismissDialog?.showModal()"
+            title="Onboarding options"
+            aria-label="Onboarding options"
+            :aria-expanded="dismissMenu"
+            @click="dismissMenu = !dismissMenu"
           >
-            <IconX :size="13" />
+            <IconDots :size="13" />
           </button>
+          <button v-if="dismissMenu" class="dismiss-menu" @click="openDismiss">Dismiss</button>
         </div>
         <NuxtLink v-for="item in nav" :key="item.path" :to="link(item.path)" :title="item.title"
           ><component :is="item.icon" :size="16" /><span :class="{ 'sr-only': collapsed }">{{
@@ -436,6 +470,13 @@ nav a.router-link-exact-active {
 .dismiss-button:focus-visible {
   opacity: 1;
 }
+.dismiss-menu {
+  position: absolute;
+  right: 0;
+  top: 30px;
+  z-index: 5;
+  box-shadow: var(--shadow-md);
+}
 .dialog-actions {
   display: flex;
   justify-content: flex-end;
@@ -449,11 +490,10 @@ nav a.router-link-exact-active {
 }
 .progress-ring {
   display: block;
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   margin: 1px;
-  border: 2px solid var(--color-borderNormal);
-  border-radius: 50%;
+  color: var(--color-textSecondary);
   flex-shrink: 0;
 }
 .group-label {

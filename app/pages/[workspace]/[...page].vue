@@ -32,6 +32,8 @@ useHead({ title: () => `${title.value} — Tenzeros` })
       <NuxtLink :to="`/${route.params.workspace}/settings/workspace/context`">AI context</NuxtLink
       ><NuxtLink :to="`/${route.params.workspace}/settings/workspace/users`"
         >Workspace members</NuxtLink
+      ><NuxtLink :to="`/${route.params.workspace}/settings/user/connected-accounts`"
+        >Connected Accounts</NuxtLink
       >
     </nav>
   </section>
