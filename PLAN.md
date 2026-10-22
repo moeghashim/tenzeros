@@ -100,7 +100,7 @@ Every LLM call inside the app goes through **DeepSeek**.
 - **Completing all tasks** shows the "Complete onboarding" state from the spec and sets `onboardingCompletedAt`.
 
 ### 3.4 Guided setup (AI, DeepSeek)
-- **Gallery:** a carousel with prev/next buttons that appear only when the track overflows. It has six flows: `set_up_pipeline`, `activate_agents`, `track_customers`, `target_account_list`, `start_outreach` and `personalize_emails`.
+- **Gallery:** a carousel with prev/next buttons that appear only when the track overflows. It has six flows: `pipeline-and-lists`, `activate-agents`, `existing-customers`, `target-account-list`, `start-outreach` and `personalize-emails` (keys and copy per spec §1.4; non-enabled flows are out of scope).
   - The last two are locked until a mailbox exists (lock icon + "Connect Gmail" CTA, as in the spec).
   - Status badges come from `GET /api/onboarding/flows/statuses` → `{statuses:{[flowKey]:status}, chatIds:{[flowKey]:chatId}}`.
 - **Starting a flow:** clicking a card calls `POST /api/onboarding/flows/start {workspaceId, flowKey, mode:"start"|"resume"|"restart"}`, which returns `{chatId}`. A **docked chat panel** then opens on the right and the agent speaks first.
