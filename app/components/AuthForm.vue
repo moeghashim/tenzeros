@@ -1,6 +1,10 @@
 <script setup lang="ts">
 const props = defineProps<{ mode: 'signup' | 'login' }>()
 const form = reactive({ name: '', email: '', workspaceName: '', domain: '' })
+const mounted = ref(false)
+onMounted(() => {
+  mounted.value = true
+})
 const busy = ref(false)
 const error = ref('')
 async function submit() {
@@ -31,7 +35,7 @@ async function submit() {
             : 'Sign in with your name and email.'
         }}
       </p>
-      <form @submit.prevent="submit">
+      <form method="post" @submit.prevent="submit">
         <label
           >Your name<input
             v-model="form.name"
@@ -70,7 +74,7 @@ async function submit() {
           /></label>
         </template>
         <p v-if="error" role="alert" class="error">{{ error }}</p>
-        <button class="primary" :disabled="busy" type="submit">
+        <button class="primary" :disabled="busy || !mounted" type="submit">
           {{ busy ? 'Please wait…' : mode === 'signup' ? 'Create workspace' : 'Sign in' }}
         </button>
       </form>
